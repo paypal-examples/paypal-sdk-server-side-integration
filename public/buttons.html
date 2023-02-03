@@ -1,0 +1,49 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>PayPal Buttons Demo</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <script src="https://unpkg.com/@paypal/paypal-js@5.1.4/dist/iife/paypal-js.min.js"></script>
+  </head>
+  <body>
+    <h1>PayPal Buttons Example</h1>
+    <div id="paypal-buttons-container"></div>
+    <script>
+      function loadPayPalSDK() {
+        return fetch("/api/paypal/get-client-id")
+          .then((response) => response.json())
+          .then(({ clientID }) => {
+            return paypalLoadScript({ "client-id": clientID });
+          });
+      }
+
+      loadPayPalSDK().then(() => {
+        window.paypal
+          .Buttons({
+            createOrder() {
+              return fetch("/api/paypal/create-order", {
+                method: "post",
+                body: JSON.stringify({
+                  cart: [
+                    {
+                      sku: "PRODUCT-123",
+                      quantity: 1,
+                    },
+                  ],
+                }),
+              })
+                .then((response) => response.json())
+                .then((order) => order.id);
+            },
+          })
+          .render("#paypal-buttons-container")
+          .catch((error) => {
+            console.error("failed to render the PayPal Buttons", error);
+          });
+      });
+    </script>
+  </body>
+</html>
