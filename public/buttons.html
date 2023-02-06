@@ -26,11 +26,14 @@
             createOrder() {
               return fetch("/api/paypal/create-order", {
                 method: "post",
+                headers: {
+                  "Content-Type": "application/json",
+                },
                 body: JSON.stringify({
                   cart: [
                     {
-                      sku: "PRODUCT-123",
-                      quantity: 1,
+                      sku: "PRODUCT_123",
+                      quantity: 2,
                     },
                   ],
                 }),

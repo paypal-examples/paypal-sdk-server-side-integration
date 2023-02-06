@@ -1,0 +1,12 @@
+{
+  "PRODUCT_123": {
+    "name": "product 1",
+    "price": "50.75",
+    "status": "IN_STOCK"
+  },
+  "PRODUCT_456": {
+    "name": "product 2",
+    "price": "100",
+    "status": "IN_STOCK"
+  }
+}
