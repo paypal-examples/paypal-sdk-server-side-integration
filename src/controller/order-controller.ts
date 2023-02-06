@@ -67,7 +67,7 @@ async function createOrderHandler(
   reply.send(data);
 }
 
-export default async function createOrderController(fastify: FastifyInstance) {
+export async function createOrderController(fastify: FastifyInstance) {
   fastify.route({
     method: "POST",
     url: "/create-order",
