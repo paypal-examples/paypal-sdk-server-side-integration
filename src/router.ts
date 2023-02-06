@@ -1,10 +1,10 @@
 import type { FastifyInstance } from "fastify";
-import generateClientTokenController from "./controller/generate-client-token-controller";
+import { clientTokenController } from "./controller/client-token-controller";
 import { createOrderController } from "./controller/order-controller";
-import getClientIDController from "./controller/get-client-id-controller";
+import { clientIDController } from "./controller/config-controller";
 
 export default async function router(fastify: FastifyInstance) {
-  fastify.register(generateClientTokenController, { prefix: "/api/paypal" });
+  fastify.register(clientTokenController, { prefix: "/api/paypal" });
   fastify.register(createOrderController, { prefix: "/api/paypal" });
-  fastify.register(getClientIDController, { prefix: "/api/paypal" });
+  fastify.register(clientIDController, { prefix: "/api/paypal" });
 }

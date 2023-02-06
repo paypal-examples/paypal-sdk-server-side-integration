@@ -13,7 +13,7 @@
     <div id="paypal-buttons-container"></div>
     <script>
       function loadPayPalSDK() {
-        return fetch("/api/paypal/get-client-id")
+        return fetch("/api/paypal/client-id")
           .then((response) => response.json())
           .then(({ clientID }) => {
             return paypalLoadScript({ "client-id": clientID });
