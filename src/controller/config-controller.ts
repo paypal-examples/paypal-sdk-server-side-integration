@@ -2,14 +2,14 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import config from "../config";
 
 const {
-  paypal: { clientID },
+  paypal: { clientID, webBaseUrl },
 } = config;
 
 export async function clientIDController(fastify: FastifyInstance) {
   fastify.get(
-    "/client-id",
+    "/client-config",
     function (_request: FastifyRequest, reply: FastifyReply) {
-      reply.send({ clientID });
+      reply.send({ clientID, webBaseUrl });
     }
   );
 }

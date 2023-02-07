@@ -13,10 +13,13 @@
     <div id="paypal-buttons-container"></div>
     <script>
       function loadPayPalSDK() {
-        return fetch("/api/paypal/client-id")
+        return fetch("/api/paypal/client-config")
           .then((response) => response.json())
-          .then(({ clientID }) => {
-            return paypalLoadScript({ "client-id": clientID });
+          .then(({ clientID, webBaseUrl }) => {
+            return paypalLoadScript({
+              "client-id": clientID,
+              sdkBaseURL: `${webBaseUrl}/sdk/js`,
+            });
           });
       }
 
