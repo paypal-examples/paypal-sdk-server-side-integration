@@ -5,7 +5,7 @@ const {
   paypal: { clientID, webBaseUrl },
 } = config;
 
-export async function clientIDController(fastify: FastifyInstance) {
+export async function configController(fastify: FastifyInstance) {
   fastify.get(
     "/client-config",
     function (_request: FastifyRequest, reply: FastifyReply) {
