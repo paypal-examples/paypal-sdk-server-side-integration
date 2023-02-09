@@ -45,6 +45,17 @@
                 .then((response) => response.json())
                 .then((order) => order.id);
             },
+            onApprove(data) {
+              return fetch("/api/paypal/capture-order", {
+                method: "post",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ orderID: data.orderID }),
+              })
+                .then((response) => response.json())
+                .then((data) => console.log(data));
+            },
           })
           .render("#paypal-buttons-container")
           .catch((error) => {

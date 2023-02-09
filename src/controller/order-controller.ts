@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 
 import getAuthToken from "../auth/get-auth-token";
 import createOrder from "../order/create-order";
+import captureOrder from "../order/capture-order";
 import products from "../data/products.json";
 
 import type { CreateOrderRequestBody } from "@paypal/paypal-js";
@@ -67,6 +68,17 @@ async function createOrderHandler(
   reply.send(data);
 }
 
+async function captureOrderHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const { orderID } = request.body as { orderID: string };
+  const { access_token: accessToken } = await getAuthToken();
+
+  const data = await captureOrder(accessToken, orderID);
+  reply.send(data);
+}
+
 export async function createOrderController(fastify: FastifyInstance) {
   fastify.route({
     method: "POST",
@@ -87,6 +99,25 @@ export async function createOrderController(fastify: FastifyInstance) {
                 quantity: { type: "number" },
               },
             },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function captureOrderController(fastify: FastifyInstance) {
+  fastify.route({
+    method: "POST",
+    url: "/capture-order",
+    handler: captureOrderHandler,
+    schema: {
+      body: {
+        type: "object",
+        required: ["orderID"],
+        properties: {
+          orderID: {
+            type: "string",
           },
         },
       },

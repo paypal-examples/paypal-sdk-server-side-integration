@@ -6,13 +6,17 @@ const {
 } = config;
 
 type CaptureOrderErrorResponse = {
-  error: string;
-  error_description: string;
+  [key: string]: unknown;
+  details: Record<string, string>;
+  name: string;
+  message: string;
+  debug_id: string;
 };
 
-interface HttpErrorResponse extends Error {
+type HttpErrorResponse = {
   statusCode?: number;
-}
+  details?: Record<string, string>;
+} & Error;
 
 export default async function captureOrder(
   accessToken: string,
@@ -44,13 +48,19 @@ export default async function captureOrder(
 
     const data = await response.json();
 
-    if (response.status !== 200) {
+    if (response.status !== 200 && response.status !== 201) {
       const errorData = data as CaptureOrderErrorResponse;
-      console.log({ errorData });
-      const errorMessage = errorData.error
-        ? `${errorData.error} - ${errorData.error_description}`
-        : defaultErrorMessage;
-      throw new Error(errorMessage);
+
+      if (!errorData.name) {
+        throw new Error(defaultErrorMessage);
+      }
+
+      const { name, message, debug_id, details } = errorData;
+      const errorMessage = `${name} - ${message} (debug_id: ${debug_id})`;
+
+      const error: HttpErrorResponse = new Error(errorMessage);
+      error.details = details;
+      throw error;
     }
 
     // TODO: define type for capture order response
