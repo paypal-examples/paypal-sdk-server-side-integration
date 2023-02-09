@@ -4,6 +4,7 @@ import { createOrderController } from "./controller/order-controller";
 import { patchOrderController } from "./controller/patch-order-controller";
 import { setErrorHandler } from "./controller/error-controller";
 import { configController } from "./controller/config-controller";
+import { setErrorHandler } from "./controller/error-controller";
 
 export default async function router(fastify: FastifyInstance) {
   setErrorHandler(fastify);
