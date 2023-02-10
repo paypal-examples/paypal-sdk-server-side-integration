@@ -14,9 +14,10 @@ type PatchOrderErrorResponse = {
   debug_id: string;
 };
 
-interface HttpErrorResponse extends Error {
+type HttpErrorResponse = {
   statusCode?: number;
-}
+  details?: Record<string, string>;
+} & Error;
 
 export default async function onShippingChange(
   accessToken: string,
@@ -55,11 +56,16 @@ export default async function onShippingChange(
 
     if (response.status !== 200 && response.status !== 201) {
       const errorData = data as PatchOrderErrorResponse;
-      console.log({ errorData, status: response.status });
-      const errorMessage = errorData.name
-        ? `${errorData.name} - ${errorData.message} (debug_id: ${errorData.debug_id})`
-        : defaultErrorMessage;
-      throw new Error(errorMessage);
+      if (!errorData.name) {
+        throw new Error(defaultErrorMessage);
+      }
+
+      const { name, message, debug_id, details } = errorData;
+      const errorMessage = `${name} - ${message} (debug_id: ${debug_id})`;
+
+      const error: HttpErrorResponse = new Error(errorMessage);
+      error.details = details as Record<string, string>;
+      throw error;
     }
 
     // TODO: define type for patch order response
