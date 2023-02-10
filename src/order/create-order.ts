@@ -7,21 +7,33 @@ const {
   paypal: { apiBaseUrl },
 } = config;
 
+type CreateOrderResponse = {
+  id: string;
+  status: string;
+  links: {
+    href: string;
+    rel: string;
+    method: string;
+  }[];
+};
+
 type CreateOrderErrorResponse = {
   [key: string]: unknown;
+  details: Record<string, string>;
   name: string;
   message: string;
   debug_id: string;
 };
 
-interface HttpErrorResponse extends Error {
+type HttpErrorResponse = {
   statusCode?: number;
-}
+  details?: Record<string, string>;
+} & Error;
 
 export default async function createOrder(
   accessToken: string,
   orderPayload: CreateOrderRequestBody
-) {
+): Promise<CreateOrderResponse> {
   if (!accessToken) {
     throw new Error("MISSING_ACCESS_TOKEN");
   }
@@ -48,15 +60,20 @@ export default async function createOrder(
 
     if (response.status !== 200 && response.status !== 201) {
       const errorData = data as CreateOrderErrorResponse;
-      console.log({ errorData, status: response.status });
-      const errorMessage = errorData.name
-        ? `${errorData.name} - ${errorData.message} (debug_id: ${errorData.debug_id})`
-        : defaultErrorMessage;
-      throw new Error(errorMessage);
+
+      if (!errorData.name) {
+        throw new Error(defaultErrorMessage);
+      }
+
+      const { name, message, debug_id, details } = errorData;
+      const errorMessage = `${name} - ${message} (debug_id: ${debug_id})`;
+
+      const error: HttpErrorResponse = new Error(errorMessage);
+      error.details = details;
+      throw error;
     }
 
-    // TODO: define type for create order response
-    return data;
+    return data as CreateOrderResponse;
   } catch (error) {
     const httpError: HttpErrorResponse =
       error instanceof Error ? error : new Error(defaultErrorMessage);

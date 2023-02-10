@@ -8,5 +8,10 @@
     "name": "product 2",
     "price": "100",
     "status": "IN_STOCK"
+  },
+  "PRODUCT_789": {
+    "name": "product 3",
+    "price": "-100",
+    "status": "INVALID"
   }
 }
