@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 
 import getAuthToken from "../auth/get-auth-token";
-import onShippingChange from "../order/patch-order";
+import {onShippingChange} from "../order/patch-order";
 import shippings from "../data/shippings.json";
 
 import type { ShippingAddress, ShippingOptionType, SelectedShippingOption } from "@paypal/paypal-js";

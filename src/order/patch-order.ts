@@ -19,7 +19,7 @@ type HttpErrorResponse = {
   details?: Record<string, string>;
 } & Error;
 
-export default async function onShippingChange(
+export async function onShippingChange(
   accessToken: string,
   patchOrderPayload: { shippingOption?: { id: string; label: any; type: any; selected: any; amount: { value: number; currency_code: any; }; }[]; shippingAddress?: ShippingAddress; orderID?: string; amount?: any; selected_shipping_option?: any; }
 ) {

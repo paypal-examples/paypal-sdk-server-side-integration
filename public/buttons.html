@@ -46,7 +46,6 @@
                 .then((order) => order.id);
             },
             onShippingChange(data) {
-              console.log("in the onShippingChange ")
               console.log(data)
               return fetch("/api/paypal/patch-order", {
                 method: "patch",
