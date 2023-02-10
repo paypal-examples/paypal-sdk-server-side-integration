@@ -18,9 +18,14 @@ interface HttpErrorResponse extends Error {
   statusCode?: number;
 }
 
-export default async function patchOrder(
-  patchOrderPayload: { shippingOption?: { id: string; label: any; type: any; selected: any; amount: { value: number; currency_code: any; }; }[]; shippingAddress?: ShippingAddress; orderId?: string; amount?: any; selected_shipping_option?: any; }
+export default async function onShippingChange(
+  accessToken: string,
+  patchOrderPayload: { shippingOption?: { id: string; label: any; type: any; selected: any; amount: { value: number; currency_code: any; }; }[]; shippingAddress?: ShippingAddress; orderID?: string; amount?: any; selected_shipping_option?: any; }
 ) {
+  if (!accessToken) {
+    throw new Error("MISSING_ACCESS_TOKEN");
+  }
+
   if (!patchOrderPayload) {
     throw new Error("MISSING_PAYLOAD_FOR_PATCH_ORDER");
   }
@@ -33,9 +38,17 @@ export default async function patchOrder(
     patchOrderPayload.amount.value =
           parseFloat(baseAmount) +
           parseFloat(patchOrderPayload.selected_shipping_option.amount.value);
-    response = await fetch(`${apiBaseUrl}/v2/checkout/orders`, {
+          console.log(apiBaseUrl, patchOrderPayload.orderID)
+    response = await fetch(`${apiBaseUrl}/v2/checkout/orders/${patchOrderPayload.orderID}`, {
       method: "patch",
-      body: JSON.stringify(patchOrderPayload),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "Accept-Language": "en_US",
+      },
+      // body: JSON.stringify(patchOrderPayload),
+      body: JSON.stringify([ { "op": "replace", "path": "/purchase_units/@reference_id==PUHF/selected/shipping/option", "value": {patchOrderPayload} } ])
+
     });
 
     const data = await response.json();

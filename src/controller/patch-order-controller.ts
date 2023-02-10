@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 
 import getAuthToken from "../auth/get-auth-token";
-import patchOrder from "../order/patch-order";
+import onShippingChange from "../order/patch-order";
 import shippings from "../data/shippings.json";
 
 import type { ShippingAddress, ShippingOptionType, SelectedShippingOption } from "@paypal/paypal-js";
@@ -21,10 +21,13 @@ async function patchOrderHandler(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { shippingOptions, shippingAddress, orderId } = request.body as { shippingOptions: ShippingOption[], shippingAddress: ShippingAddress, orderId: string };
+  console.log("in the patchOrderHandler")
+  const { shippingOptions, shippingAddress, orderID } = request.body as { shippingOptions: ShippingOption[], shippingAddress: ShippingAddress, orderID: string };
+  const { access_token: accessToken } = await getAuthToken();
   const baseAmount = "3";
 
   const shippingPayload = {
+    intent: "replace",
     shippingOption: shippingOptions.map(({id}) => {
       const { label, type, selected, amount, currency_code } = (shippings as any)[id];
       return {
@@ -39,10 +42,10 @@ async function patchOrderHandler(
       }
     }),
     shippingAddress,
-    orderId
+    orderID
   };
 
-  const data = await patchOrder(shippingPayload);
+  const data = await onShippingChange(accessToken, shippingPayload);
   reply.send(data);
 }
 
@@ -51,41 +54,38 @@ export async function patchOrderController(fastify: FastifyInstance) {
     method: "PATCH",
     url: "/patch-order",
     handler: patchOrderHandler,
-    schema: {
-      body: {
-        type: "object",
-        required: ["orderId", "shippingOption", "shippingAddress"],
-        properties: {
-          orderId: {
-            type: "number"
-          },
-          shippingOption: {
-            type: "array",
-            items: {
-              type: "object",
-              required: ["id", "selected"],
-              properties: {
-                id: { type: "string" },
-                // label: { type: "string" },
-                // type: { type: "string" },
-                selected: { type: "boolean" }
-              },
-            },
-          },
-          shippingAddress:{
-            type: "object",
-            required: ["postal_code"],
-            properties: {
-              address_line_1: { type: "string" },
-              address_line_2: { type: "string" },
-              admin_area_2: { type: "string" },
-              admin_area_1: { type: "string" },
-              postal_code: { type: "string" },
-              country_code: { type: "string" }
-            }
-          }
-        },
-      },
-    },
+    // schema: {
+    //   body: {
+    //     type: "object",
+    //     required: ["orderID"],
+    //     properties: {
+    //       orderID: {
+    //         type: "string"
+    //       },
+    //       shippingOption: {
+    //         type: "array",
+    //         items: {
+    //           type: "object",
+    //           required: ["id", "selected"],
+    //           properties: {
+    //             id: { type: "string" },
+    //             // label: { type: "string" },
+    //             // type: { type: "string" },
+    //             selected: { type: "boolean" }
+    //           },
+    //         },
+    //       },
+    //       shipping_address:{
+    //         type: "object",
+    //         properties: {
+    //           city: { type: "string" },
+    //           country_code: { type: "string" },
+    //           postal_code: { type: "string" },
+    //           state: { type: "string" }
+    //         }
+    //       }
+    //     },
+    //   },
+    // },
   });
 }

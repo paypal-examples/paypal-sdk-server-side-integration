@@ -44,6 +44,22 @@
                 .then((response) => response.json())
                 .then((order) => order.id);
             },
+            onShippingChange(data) {
+              console.log("in the onShippingChange ")
+              console.log(data)
+              return fetch("/api/paypal/patch-order", {
+                method: "patch",
+                headers:{
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  orderID: data.orderID,
+                  selectedShippingOption:data.selected_shipping_option,
+                  shippingAddress: data.shipping_address,
+                })
+              })
+              .then((response) => response.json())
+            }
           })
           .render("#paypal-buttons-container")
           .catch((error) => {
