@@ -59,6 +59,40 @@ async function createOrderHandler(
             },
           };
         }),
+        shipping: {
+          options: [
+            {
+              id: "SHIP_123",
+              label: "Free Shipping",
+              type: "SHIPPING",
+              selected: false,
+              amount: {
+                value: "3.00",
+                currency_code: "USD",
+              },
+            },
+            {
+              id: "SHIP_456",
+              label: "Pick up in Store",
+              type: "PICKUP",
+              selected: false,
+              amount: {
+                value: "0.00",
+                currency_code: "USD",
+              },
+            },
+            {
+              id: "SHIP_789",
+              label: "Prime Shipping",
+              type: "SHIPPING",
+              selected: true,
+              amount: {
+                value: "8.00",
+                currency_code: "USD",
+              },
+            },
+          ],
+        },
       },
     ],
   };
