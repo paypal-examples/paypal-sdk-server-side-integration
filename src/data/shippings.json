@@ -2,6 +2,7 @@
   "SHIP_123": {
     "label": "Free Shipping",
     "type": "SHIPPING",
+    "selected": false,
     "amount": {
       "value": "0.00",
       "currency_code": "USD"
@@ -10,6 +11,7 @@
   "SHIP_456": {
     "label": "Pick up in Store",
     "type": "PICKUP",
+    "selected": false,
     "amount": {
       "value": "0.00",
       "currency_code": "USD"
@@ -18,6 +20,7 @@
   "SHIP_789": {
     "label": "Prime Shipping",
     "type": "PRIMESHIPPING",
+    "selected": true,
     "amount": {
       "value": "5.00",
       "currency_code": "USD"
