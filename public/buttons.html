@@ -51,7 +51,19 @@
                 }),
               })
                 .then((response) => response.json())
-                .then((order) => order.id);
+                .then((orderResponse) => {
+                  if (orderResponse.id === undefined) {
+                    // throw an error if orderID is missing
+                    throw new Error(orderResponse.message);
+                  }
+
+                  return orderResponse.id;
+                })
+                .catch((error) => {
+                  throw new Error(
+                    `createOrder callback failed - ${error.message}`
+                  );
+                });
             },
             onApprove(data) {
               return fetch("/api/paypal/capture-order", {
@@ -63,6 +75,12 @@
               })
                 .then((response) => response.json())
                 .then((data) => console.log(data));
+            },
+            onError(error) {
+              console.error({
+                callback: "onError",
+                errorObject: error,
+              });
             },
           })
           .render("#paypal-buttons-container")
