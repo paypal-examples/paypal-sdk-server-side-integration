@@ -1,17 +1,29 @@
 {
-  "PRODUCT_123": {
-    "name": "product 1",
+  "1blwyeo8": {
+    "sku": "1blwyeo8",
+    "name": "Potted Plant",
+    "description": "A leafy green plant in pot.",
     "price": "50.75",
-    "status": "IN_STOCK"
+    "category": "PHYSICAL_GOODS",
+    "status": "IN_STOCK",
+    "image": "🪴"
   },
-  "PRODUCT_456": {
-    "name": "product 2",
-    "price": "100",
-    "status": "IN_STOCK"
+  "i5b1g92y": {
+    "sku": "i5b1g92y",
+    "name": "Seedling",
+    "description": "A seedling, or a young plant, as a newly sprouted tree.",
+    "price": "25.20",
+    "category": "PHYSICAL_GOODS",
+    "status": "IN_STOCK",
+    "image": "🌱"
   },
-  "PRODUCT_789": {
-    "name": "product 3",
+  "xyw5kd7k": {
+    "sku": "xyw5kd7k",
+    "name": "Cactus",
+    "description": "A cactus, a spiky plant that grows in very dry regions.",
     "price": "-100",
-    "status": "INVALID"
+    "category": "PHYSICAL_GOODS",
+    "status": "INVALID",
+    "image": "🌵"
   }
 }
