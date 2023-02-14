@@ -5,7 +5,7 @@ import createOrder from "../order/create-order";
 import captureOrder from "../order/capture-order";
 import products from "../data/products.json";
 
-import type { CreateOrderRequestBody } from "@paypal/paypal-js";
+import type { CreateOrderRequestBody, PurchaseItem } from "@paypal/paypal-js";
 
 type CartItem = {
   sku: keyof typeof products;
@@ -49,16 +49,18 @@ async function createOrderHandler(
           },
         },
         items: cart.map(({ sku, quantity }) => {
-          const { name, price } = products[sku];
+          const { name, description, price, category } = products[sku];
           return {
             name,
             sku,
+            description,
+            category: category,
             quantity: quantity.toString(),
             unit_amount: {
               currency_code: "USD",
               value: price,
             },
-          };
+          } as PurchaseItem;
         }),
       },
     ],
