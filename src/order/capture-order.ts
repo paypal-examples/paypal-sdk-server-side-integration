@@ -42,6 +42,9 @@ export default async function captureOrder(
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
           "Accept-Language": "en_US",
+          // uncomment this to force an error for negative testing
+          // https://developer.paypal.com/tools/sandbox/negative-testing/request-headers/
+          // "PayPal-Mock-Response": '{"mock_application_codes": "INSTRUMENT_DECLINED"}'
         },
       }
     );

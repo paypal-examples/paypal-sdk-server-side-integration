@@ -51,13 +51,13 @@
                 }),
               })
                 .then((response) => response.json())
-                .then((orderResponse) => {
-                  if (orderResponse.id === undefined) {
+                .then((orderData) => {
+                  if (orderData.id === undefined) {
                     // throw an error if orderID is missing
-                    throw new Error(orderResponse.message);
+                    throw new Error(orderData.message);
                   }
 
-                  return orderResponse.id;
+                  return orderData.id;
                 })
                 .catch((error) => {
                   throw new Error(
@@ -65,7 +65,7 @@
                   );
                 });
             },
-            onApprove(data) {
+            onApprove(data, actions) {
               return fetch("/api/paypal/capture-order", {
                 method: "post",
                 headers: {
@@ -74,7 +74,39 @@
                 body: JSON.stringify({ orderID: data.orderID }),
               })
                 .then((response) => response.json())
-                .then((data) => console.log(data));
+                .then((orderData) => {
+                  // Three cases to handle:
+                  //   (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
+                  //   (2) Other non-recoverable errors -> Show a failure message
+                  //   (3) Successful transaction -> Show confirmation or thank you
+
+                  const errorDetail =
+                    Array.isArray(orderData.details) && orderData.details[0];
+
+                  if (
+                    errorDetail &&
+                    errorDetail.issue === "INSTRUMENT_DECLINED"
+                  ) {
+                    // recoverable state
+                    // https://developer.paypal.com/docs/checkout/standard/customize/handle-funding-failures/
+                    return actions.restart();
+                  }
+
+                  // non-recoverable state
+                  if (errorDetail) {
+                    return console.error({
+                      callback: "onApprove",
+                      errorDetail: orderData,
+                    });
+                  }
+
+                  // successful capture
+                  console.log(
+                    "Capture result",
+                    orderData,
+                    JSON.stringify(orderData, null, 2)
+                  );
+                });
             },
             onError(error) {
               console.error({
