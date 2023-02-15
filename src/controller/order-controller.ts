@@ -22,7 +22,8 @@ function getTotalAmount(cartItems: CartItem[]): string {
     })
     .reduce((partialSum, a) => partialSum + a, 0);
 
-  return amountValue.toLocaleString("en-US", { minimumFractionDigits: 2 });
+  const roundedAmount = Math.round((amountValue + Number.EPSILON) * 100) / 100;
+  return roundedAmount.toString();
 }
 
 async function createOrderHandler(
