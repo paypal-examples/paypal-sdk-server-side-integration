@@ -50,7 +50,7 @@ export default async function getAuthToken(
   let response;
   try {
     response = await fetch(`${apiBaseUrl}/v1/oauth2/token`, {
-      method: "post",
+      method: "POST",
       body: "grant_type=client_credentials",
       headers: {
         Accept: "application/json",

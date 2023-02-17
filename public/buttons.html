@@ -28,7 +28,7 @@
           .Buttons({
             createOrder() {
               return fetch("/api/paypal/create-order", {
-                method: "post",
+                method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
@@ -67,7 +67,7 @@
             },
             onApprove(data, actions) {
               return fetch("/api/paypal/capture-order", {
-                method: "post",
+                method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
