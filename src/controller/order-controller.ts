@@ -2,9 +2,10 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 
 import getAuthToken from "../auth/get-auth-token";
 import createOrder from "../order/create-order";
+import captureOrder from "../order/capture-order";
 import products from "../data/products.json";
 
-import type { CreateOrderRequestBody } from "@paypal/paypal-js";
+import type { CreateOrderRequestBody, PurchaseItem } from "@paypal/paypal-js";
 
 type CartItem = {
   sku: keyof typeof products;
@@ -21,7 +22,8 @@ function getTotalAmount(cartItems: CartItem[]): string {
     })
     .reduce((partialSum, a) => partialSum + a, 0);
 
-  return amountValue.toLocaleString("en-US", { minimumFractionDigits: 2 });
+  const roundedAmount = Math.round((amountValue + Number.EPSILON) * 100) / 100;
+  return roundedAmount.toString();
 }
 
 async function createOrderHandler(
@@ -48,16 +50,18 @@ async function createOrderHandler(
           },
         },
         items: cart.map(({ sku, quantity }) => {
-          const { name, price } = products[sku];
+          const { name, description, price, category } = products[sku];
           return {
             name,
             sku,
+            description,
+            category: category,
             quantity: quantity.toString(),
             unit_amount: {
               currency_code: "USD",
               value: price,
             },
-          };
+          } as PurchaseItem;
         }),
         shipping: {
           options: [
@@ -101,6 +105,17 @@ async function createOrderHandler(
   reply.send(data);
 }
 
+async function captureOrderHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const { orderID } = request.body as { orderID: string };
+  const { access_token: accessToken } = await getAuthToken();
+
+  const data = await captureOrder(accessToken, orderID);
+  reply.send(data);
+}
+
 export async function createOrderController(fastify: FastifyInstance) {
   fastify.route({
     method: "POST",
@@ -121,6 +136,25 @@ export async function createOrderController(fastify: FastifyInstance) {
                 quantity: { type: "number" },
               },
             },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function captureOrderController(fastify: FastifyInstance) {
+  fastify.route({
+    method: "POST",
+    url: "/capture-order",
+    handler: captureOrderHandler,
+    schema: {
+      body: {
+        type: "object",
+        required: ["orderID"],
+        properties: {
+          orderID: {
+            type: "string",
           },
         },
       },

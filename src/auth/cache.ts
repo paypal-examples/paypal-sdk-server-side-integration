@@ -34,7 +34,7 @@ export default class Cache {
       return originalValue;
     } else {
       logger.debug("key is expired");
-      // TODO: delete from cache
+      this.store.delete(credentials);
     }
   }
 

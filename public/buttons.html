@@ -35,15 +35,84 @@
                 body: JSON.stringify({
                   cart: [
                     {
-                      // change this to "PRODUCT_789" to force an error
-                      sku: "PRODUCT_123",
+                      sku: "1blwyeo8",
                       quantity: 2,
                     },
+                    {
+                      sku: "i5b1g92y",
+                      quantity: 1,
+                    },
+                    // uncomment this to force an error
+                    // {
+                    //   sku: "xyw5kd7k",
+                    //   quantity: 1,
+                    // },
                   ],
                 }),
               })
                 .then((response) => response.json())
-                .then((order) => order.id);
+                .then((orderData) => {
+                  if (orderData.id === undefined) {
+                    // throw an error if orderID is missing
+                    throw new Error(orderData.message);
+                  }
+
+                  return orderData.id;
+                })
+                .catch((error) => {
+                  throw new Error(
+                    `createOrder callback failed - ${error.message}`
+                  );
+                });
+            },
+            onApprove(data, actions) {
+              return fetch("/api/paypal/capture-order", {
+                method: "post",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ orderID: data.orderID }),
+              })
+                .then((response) => response.json())
+                .then((orderData) => {
+                  // Three cases to handle:
+                  //   (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
+                  //   (2) Other non-recoverable errors -> Show a failure message
+                  //   (3) Successful transaction -> Show confirmation or thank you
+
+                  const errorDetail =
+                    Array.isArray(orderData.details) && orderData.details[0];
+
+                  if (
+                    errorDetail &&
+                    errorDetail.issue === "INSTRUMENT_DECLINED"
+                  ) {
+                    // recoverable state
+                    // https://developer.paypal.com/docs/checkout/standard/customize/handle-funding-failures/
+                    return actions.restart();
+                  }
+
+                  // non-recoverable state
+                  if (errorDetail) {
+                    return console.error({
+                      callback: "onApprove",
+                      errorDetail: orderData,
+                    });
+                  }
+
+                  // successful capture
+                  console.log(
+                    "Capture result",
+                    orderData,
+                    JSON.stringify(orderData, null, 2)
+                  );
+                });
+            },
+            onError(error) {
+              console.error({
+                callback: "onError",
+                errorObject: error,
+              });
             },
             onShippingChange(data) {
               console.log(data);
