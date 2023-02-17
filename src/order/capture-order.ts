@@ -37,7 +37,7 @@ export default async function captureOrder(
     response = await fetch(
       `${apiBaseUrl}/v2/checkout/orders/${orderId}/capture`,
       {
-        method: "post",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,

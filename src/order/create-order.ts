@@ -47,7 +47,7 @@ export default async function createOrder(
   let response;
   try {
     response = await fetch(`${apiBaseUrl}/v2/checkout/orders`, {
-      method: "post",
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,

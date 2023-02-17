@@ -42,7 +42,7 @@ export default async function generateClientToken(
   let response;
   try {
     response = await fetch(`${apiBaseUrl}/v1/identity/generate-token`, {
-      method: "post",
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
