@@ -5,6 +5,8 @@ import createOrder from "../order/create-order";
 import products from "../data/products.json";
 
 import type { CreateOrderRequestBody } from "@paypal/paypal-js";
+import { onShippingChange } from "../order/patch-order";
+import { retrieveOrder } from "../order/retrieve-order";
 
 type CartItem = {
   sku: keyof typeof products;
@@ -125,5 +127,59 @@ export async function createOrderController(fastify: FastifyInstance) {
         },
       },
     },
+  });
+}
+
+// Patch order
+export type ShippingOption = {
+  id: string;
+  label: string;
+  type: string;
+  selected: boolean;
+  amount: {
+    value: string;
+    currency_code: string;
+  };
+};
+
+async function patchOrderHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { selectedShippingOption, baseAmount, orderID } = request.body as {
+    selectedShippingOption: ShippingOption;
+    baseAmount:string;
+    orderID: string;
+  };
+  const { access_token: accessToken } = await getAuthToken();
+
+  let shippingPayload = {
+    selectedShippingOption,
+    baseAmount,
+    orderID,
+  };
+
+  const data = await onShippingChange(accessToken, shippingPayload);
+  reply.send(data);
+}
+
+export async function patchOrderController(fastify: FastifyInstance) {
+  fastify.route({
+    method: "PATCH",
+    url: "/patch-order",
+    handler: patchOrderHandler
+  });
+}
+
+//retrieve order details
+async function retrieveOrderHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { access_token: accessToken } = await getAuthToken();
+  const { orderID } = request.body as {orderID: string;};
+  const data = await retrieveOrder(accessToken, orderID);
+  reply.send(data);
+}
+
+export async function retrieveOrderController(fastify: FastifyInstance) {
+  fastify.route({
+    method: "GET",
+    url: "/retrieve-order",
+    handler: retrieveOrderHandler
   });
 }

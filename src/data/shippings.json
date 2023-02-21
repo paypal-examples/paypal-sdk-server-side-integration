@@ -4,7 +4,7 @@
     "type": "SHIPPING",
     "selected": false,
     "amount": {
-      "value": "0.00",
+      "value": "3.00",
       "currency_code": "USD"
     }
   },
@@ -19,10 +19,10 @@
   },
   "SHIP_789": {
     "label": "Prime Shipping",
-    "type": "PRIMESHIPPING",
+    "type": "SHIPPING",
     "selected": true,
     "amount": {
-      "value": "5.00",
+      "value": "8.00",
       "currency_code": "USD"
     }
   }

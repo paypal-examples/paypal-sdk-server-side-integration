@@ -54,8 +54,7 @@
                 },
                 body: JSON.stringify({
                   orderID: data.orderID,
-                  selectedShippingOption: data.selected_shipping_option,
-                  // shippingAddress: data.shipping_address,
+                  selectedShippingOption: data.selected_shipping_option
                 }),
               }).then((response) => response.json());
             },
