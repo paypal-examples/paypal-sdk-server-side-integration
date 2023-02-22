@@ -1,7 +1,7 @@
 import { fetch } from "undici";
 import config from "../config";
 import type { ShippingOption } from "../controller/order-controller";
-import { retrieveOrder } from "./retrieve-order";
+import { getOrder } from "./retrieve-order";
 
 const {
   paypal: { apiBaseUrl },
@@ -36,7 +36,7 @@ export async function onShippingChange(
   let response;
   try {
     //retrieve order details
-    const orderDetails = await retrieveOrder(
+    const orderDetails = await getOrder(
       accessToken,
       orderID
     );

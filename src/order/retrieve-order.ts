@@ -6,7 +6,7 @@ const {
   paypal: { apiBaseUrl },
 } = config;
 
-type RetrieveOrderErrorResponse = {
+type getOrderErrorResponse = {
   [key: string]: unknown;
   name: string;
   message: string;
@@ -18,7 +18,7 @@ type HttpErrorResponse = {
   details?: Record<string, string>;
 } & Error;
 
-export async function retrieveOrder(accessToken: string, orderID: string) {
+export async function getOrder(accessToken: string, orderID: string) {
   if (!accessToken) {
     throw new Error("MISSING_ACCESS_TOKEN");
   }
@@ -40,11 +40,11 @@ export async function retrieveOrder(accessToken: string, orderID: string) {
       },
     });
 
-    const data: OrderResponseBody | RetrieveOrderErrorResponse | unknown =
+    const data: OrderResponseBody | getOrderErrorResponse | unknown =
       await response.json();
 
     if (response.status !== 200 && response.status !== 201) {
-      const errorData = data as RetrieveOrderErrorResponse;
+      const errorData = data as getOrderErrorResponse;
       if (!errorData.name) {
         throw new Error(defaultErrorMessage);
       }

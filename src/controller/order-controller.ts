@@ -6,7 +6,7 @@ import captureOrder from "../order/capture-order";
 import products from "../data/products.json";
 import type { CreateOrderRequestBody, PurchaseItem } from "@paypal/paypal-js";
 import { onShippingChange } from "../order/patch-order";
-import { retrieveOrder } from "../order/retrieve-order";
+import { getOrder } from "../order/retrieve-order";
 
 type CartItem = {
   sku: keyof typeof products;
@@ -180,8 +180,12 @@ async function patchOrderHandler(request: FastifyRequest, reply: FastifyReply) {
   const { access_token: accessToken } = await getAuthToken();
 
   const data = await onShippingChange(accessToken, orderID);
-  // Send a response with a 204 status code and no body
-  reply.code(204).send();
+  if (JSON.stringify(data) !== '{}') {
+    reply.send(data);
+  } else {
+    // Send a response with a 204 status code and no body
+    reply.code(204).send();
+  }
 }
 
 export async function patchOrderController(fastify: FastifyInstance) {
@@ -204,20 +208,20 @@ export async function patchOrderController(fastify: FastifyInstance) {
 }
 
 //retrieve order details
-async function retrieveOrderHandler(
+async function getOrderHandler(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
   const { access_token: accessToken } = await getAuthToken();
   const { orderID } = request.body as { orderID: string };
-  const data = await retrieveOrder(accessToken, orderID);
+  const data = await getOrder(accessToken, orderID);
   reply.send(data);
 }
 
-export async function retrieveOrderController(fastify: FastifyInstance) {
+export async function getOrderController(fastify: FastifyInstance) {
   fastify.route({
     method: "GET",
     url: "/retrieve-order",
-    handler: retrieveOrderHandler,
+    handler: getOrderHandler,
   });
 }

@@ -4,7 +4,7 @@ import {
   createOrderController,
   captureOrderController,
   patchOrderController,
-  retrieveOrderController,
+  getOrderController,
 } from "./controller/order-controller";
 import { configController } from "./controller/config-controller";
 import { setErrorHandler } from "./controller/error-controller";
@@ -16,5 +16,5 @@ export default async function router(fastify: FastifyInstance) {
   fastify.register(captureOrderController, { prefix: "/api/paypal" });
   fastify.register(configController, { prefix: "/api/paypal" });
   fastify.register(patchOrderController, { prefix: "/api/paypal" });
-  fastify.register(retrieveOrderController, { prefix: "/api/paypal" });
+  fastify.register(getOrderController, { prefix: "/api/paypal" });
 }
