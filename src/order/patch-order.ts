@@ -21,17 +21,14 @@ type HttpErrorResponse = {
 
 export async function onShippingChange(
   accessToken: string,
-  patchOrderPayload: {
-    selectedShippingOption: ShippingOption;
-    orderID: string;
-  }
+  orderID: string
 ) {
   if (!accessToken) {
     throw new Error("MISSING_ACCESS_TOKEN");
   }
 
-  if (!patchOrderPayload) {
-    throw new Error("MISSING_PAYLOAD_FOR_PATCH_ORDER");
+  if (!orderID) {
+    throw new Error("MISSING_ORDER_ID_FOR_PATCH_ORDER");
   }
 
   const defaultErrorMessage = "FAILED_TO_PATCH_ORDER";
@@ -41,7 +38,7 @@ export async function onShippingChange(
     //retrieve order details
     const orderDetails = await retrieveOrder(
       accessToken,
-      patchOrderPayload?.orderID
+      orderID
     );
     //calculate the order amount
     let totalBaseAmount = 0;
@@ -64,7 +61,7 @@ export async function onShippingChange(
     });
 
     response = await fetch(
-      `${apiBaseUrl}/v2/checkout/orders/${patchOrderPayload?.orderID}`,
+      `${apiBaseUrl}/v2/checkout/orders/${orderID}`,
       {
         method: "PATCH",
         headers: {

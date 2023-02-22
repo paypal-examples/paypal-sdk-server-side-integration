@@ -176,18 +176,10 @@ export type ShippingOption = {
 };
 
 async function patchOrderHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { selectedShippingOption, orderID } = request.body as {
-    selectedShippingOption: ShippingOption;
-    orderID: string;
-  };
+  const { orderID } = request.body as {orderID: string};
   const { access_token: accessToken } = await getAuthToken();
 
-  let shippingPayload = {
-    selectedShippingOption,
-    orderID,
-  };
-
-  const data = await onShippingChange(accessToken, shippingPayload);
+  const data = await onShippingChange(accessToken, orderID);
   // Send a response with a 204 status code and no body
   reply.code(204).send();
 }

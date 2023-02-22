@@ -115,7 +115,6 @@
               });
             },
             onShippingChange(data) {
-              console.log(data);
               return fetch("/api/paypal/patch-order", {
                 method: "PATCH",
                 headers: {
@@ -123,7 +122,7 @@
                 },
                 body: JSON.stringify({
                   orderID: data.orderID,
-                  selectedShippingOption: data.selected_shipping_option,
+                  // selectedShippingOption: data.selected_shipping_option,
                 }),
               }).then((response) => response.json());
             },
