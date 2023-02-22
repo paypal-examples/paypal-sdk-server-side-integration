@@ -144,6 +144,25 @@ export async function createOrderController(fastify: FastifyInstance) {
   });
 }
 
+export async function captureOrderController(fastify: FastifyInstance) {
+  fastify.route({
+    method: "POST",
+    url: "/capture-order",
+    handler: captureOrderHandler,
+    schema: {
+      body: {
+        type: "object",
+        required: ["orderID"],
+        properties: {
+          orderID: {
+            type: "string",
+          },
+        },
+      },
+    },
+  });
+}
+
 // Patch order
 export type ShippingOption = {
   id: string;

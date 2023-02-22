@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { clientTokenController } from "./controller/client-token-controller";
 import {
   createOrderController,
+  captureOrderController,
   patchOrderController,
   retrieveOrderController,
 } from "./controller/order-controller";
@@ -12,6 +13,7 @@ export default async function router(fastify: FastifyInstance) {
   setErrorHandler(fastify);
   fastify.register(clientTokenController, { prefix: "/api/paypal" });
   fastify.register(createOrderController, { prefix: "/api/paypal" });
+  fastify.register(captureOrderController, { prefix: "/api/paypal" });
   fastify.register(configController, { prefix: "/api/paypal" });
   fastify.register(patchOrderController, { prefix: "/api/paypal" });
   fastify.register(retrieveOrderController, { prefix: "/api/paypal" });
