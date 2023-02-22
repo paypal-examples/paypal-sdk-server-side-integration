@@ -1,6 +1,5 @@
 import { fetch } from "undici";
 import config from "../config";
-import type { ShippingOption } from "../controller/order-controller";
 import { getOrder } from "./retrieve-order";
 
 const {
