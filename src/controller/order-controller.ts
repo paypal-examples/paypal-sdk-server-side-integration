@@ -2,9 +2,9 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 
 import getAuthToken from "../auth/get-auth-token";
 import createOrder from "../order/create-order";
+import captureOrder from "../order/capture-order";
 import products from "../data/products.json";
-
-import type { CreateOrderRequestBody } from "@paypal/paypal-js";
+import type { CreateOrderRequestBody, PurchaseItem } from "@paypal/paypal-js";
 import { onShippingChange } from "../order/patch-order";
 import { retrieveOrder } from "../order/retrieve-order";
 
@@ -23,7 +23,8 @@ function getTotalAmount(cartItems: CartItem[]): string {
     })
     .reduce((partialSum, a) => partialSum + a, 0);
 
-  return amountValue.toLocaleString("en-US", { minimumFractionDigits: 2 });
+  const roundedAmount = Math.round((amountValue + Number.EPSILON) * 100) / 100;
+  return roundedAmount.toString();
 }
 
 async function createOrderHandler(
@@ -50,16 +51,18 @@ async function createOrderHandler(
           },
         },
         items: cart.map(({ sku, quantity }) => {
-          const { name, price } = products[sku];
+          const { name, description, price, category } = products[sku];
           return {
             name,
             sku,
+            description,
+            category: category,
             quantity: quantity.toString(),
             unit_amount: {
               currency_code: "USD",
               value: price,
             },
-          };
+          } as PurchaseItem;
         }),
         shipping: {
           options: [
@@ -103,6 +106,17 @@ async function createOrderHandler(
   reply.send(data);
 }
 
+async function captureOrderHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const { orderID } = request.body as { orderID: string };
+  const { access_token: accessToken } = await getAuthToken();
+
+  const data = await captureOrder(accessToken, orderID);
+  reply.send(data);
+}
+
 export async function createOrderController(fastify: FastifyInstance) {
   fastify.route({
     method: "POST",
@@ -143,35 +157,48 @@ export type ShippingOption = {
 };
 
 async function patchOrderHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { selectedShippingOption, baseAmount, orderID } = request.body as {
+  const { selectedShippingOption, orderID } = request.body as {
     selectedShippingOption: ShippingOption;
-    baseAmount:string;
     orderID: string;
   };
   const { access_token: accessToken } = await getAuthToken();
 
   let shippingPayload = {
     selectedShippingOption,
-    baseAmount,
     orderID,
   };
 
   const data = await onShippingChange(accessToken, shippingPayload);
-  reply.send(data);
+  // Send a response with a 204 status code and no body
+  reply.code(204).send();
 }
 
 export async function patchOrderController(fastify: FastifyInstance) {
   fastify.route({
     method: "PATCH",
     url: "/patch-order",
-    handler: patchOrderHandler
+    handler: patchOrderHandler,
+    schema: {
+      body: {
+        type: "object",
+        required: ["orderID"],
+        properties: {
+          orderId: {
+            type: "string",
+          },
+        },
+      },
+    },
   });
 }
 
 //retrieve order details
-async function retrieveOrderHandler(request: FastifyRequest, reply: FastifyReply) {
+async function retrieveOrderHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
   const { access_token: accessToken } = await getAuthToken();
-  const { orderID } = request.body as {orderID: string;};
+  const { orderID } = request.body as { orderID: string };
   const data = await retrieveOrder(accessToken, orderID);
   reply.send(data);
 }
@@ -180,6 +207,6 @@ export async function retrieveOrderController(fastify: FastifyInstance) {
   fastify.route({
     method: "GET",
     url: "/retrieve-order",
-    handler: retrieveOrderHandler
+    handler: retrieveOrderHandler,
   });
 }

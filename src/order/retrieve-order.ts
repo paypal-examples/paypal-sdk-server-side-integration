@@ -1,6 +1,6 @@
 import { fetch } from "undici";
 import config from "../config";
-import type {OrderResponseBody} from "@paypal/paypal-js"
+import type { OrderResponseBody } from "@paypal/paypal-js";
 
 const {
   paypal: { apiBaseUrl },
@@ -18,10 +18,7 @@ type HttpErrorResponse = {
   details?: Record<string, string>;
 } & Error;
 
-export async function retrieveOrder(
-  accessToken: string,
-  orderID: string
-) {
+export async function retrieveOrder(accessToken: string, orderID: string) {
   if (!accessToken) {
     throw new Error("MISSING_ACCESS_TOKEN");
   }
@@ -34,19 +31,17 @@ export async function retrieveOrder(
 
   let response;
   try {
-    response = await fetch(
-      `${apiBaseUrl}/v2/checkout/orders/${orderID}`,
-      {
-        method: "get",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          "Accept-Language": "en_US",
-        }
-      }
-    );
+    response = await fetch(`${apiBaseUrl}/v2/checkout/orders/${orderID}`, {
+      method: "get",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "Accept-Language": "en_US",
+      },
+    });
 
-    const data : OrderResponseBody | RetrieveOrderErrorResponse | unknown = await response.json();
+    const data: OrderResponseBody | RetrieveOrderErrorResponse | unknown =
+      await response.json();
 
     if (response.status !== 200 && response.status !== 201) {
       const errorData = data as RetrieveOrderErrorResponse;

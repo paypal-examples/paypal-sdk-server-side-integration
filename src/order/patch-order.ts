@@ -1,8 +1,7 @@
 import { fetch } from "undici";
 import config from "../config";
 import type { ShippingOption } from "../controller/order-controller";
-import shippings from "../data/shippings.json";
-import {retrieveOrder} from "./retrieve-order";
+import { retrieveOrder } from "./retrieve-order";
 
 const {
   paypal: { apiBaseUrl },
@@ -38,26 +37,31 @@ export async function onShippingChange(
   const defaultErrorMessage = "FAILED_TO_PATCH_ORDER";
 
   let response;
-  const shippingID = patchOrderPayload?.selectedShippingOption?.id as keyof typeof shippings;
   try {
     //retrieve order details
-    const orderDetails = await retrieveOrder(accessToken, patchOrderPayload?.orderID);
+    const orderDetails = await retrieveOrder(
+      accessToken,
+      patchOrderPayload?.orderID
+    );
     //calculate the order amount
     let totalBaseAmount = 0;
     orderDetails?.purchase_units?.map((unit) => {
       const breakdownValue = parseFloat(unit?.amount?.value ?? "0");
-      const breakdownShipping = parseFloat(unit?.amount?.breakdown?.shipping?.value ?? "0");
-      const breakdownShippingDiscount = parseFloat((unit?.amount?.breakdown?.shipping_discount?.value ?? "0"));
-      console.log(breakdownValue, breakdownShipping, breakdownShippingDiscount);
-      if (breakdownValue > 0 ) {
-        totalBaseAmount += breakdownValue - (breakdownShipping - breakdownShippingDiscount);
+      const breakdownShipping = parseFloat(
+        unit?.amount?.breakdown?.shipping?.value ?? "0"
+      );
+      const breakdownShippingDiscount = parseFloat(
+        unit?.amount?.breakdown?.shipping_discount?.value ?? "0"
+      );
+      if (breakdownValue > 0) {
+        totalBaseAmount += parseFloat(
+          (
+            breakdownValue -
+            (breakdownShipping - breakdownShippingDiscount)
+          ).toFixed(2)
+        );
       }
-    })
-    console.log(totalBaseAmount);
-    console.log(parseFloat(shippings[shippingID].amount.value));
-    // get the shipping price from json file
-    const newTotalAmount = totalBaseAmount + parseFloat(shippings[shippingID].amount.value);
-    console.log("total price ", newTotalAmount);
+    });
 
     response = await fetch(
       `${apiBaseUrl}/v2/checkout/orders/${patchOrderPayload?.orderID}`,
@@ -73,16 +77,16 @@ export async function onShippingChange(
             op: "replace",
             path: "/purchase_units/@reference_id=='default'",
             value: {
-              amount: { value: newTotalAmount, currency_code: "USD" },
+              amount: { value: totalBaseAmount, currency_code: "USD" },
             },
           },
         ]),
       }
     );
- 
-   //A successful request returns the HTTP 204 No Content status code with an empty object
+
+    //A successful request returns the HTTP 204 No Content status code with an empty object
     if (response.status === 204) {
-      return response;
+      return {};
     }
 
     const data = await response.json();
@@ -96,9 +100,8 @@ export async function onShippingChange(
 
     const error: HttpErrorResponse = new Error(errorMessage);
     error.details = details as Record<string, string>;
-      throw error;
+    throw error;
   } catch (error) {
-    console.log("error ", error)
     const httpError: HttpErrorResponse =
       error instanceof Error ? error : new Error(defaultErrorMessage);
     httpError.statusCode = response?.status;
