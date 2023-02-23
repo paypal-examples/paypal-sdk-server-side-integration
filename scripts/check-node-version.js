@@ -18,7 +18,7 @@ if (isValidNodeVersion) {
 
 const output = `
 node: ${process.version}
-Minimum node version ${expectedNodeVersion}
+Minimum node version ${minimumNodeVersion}
 `;
 
 console.error(output);
