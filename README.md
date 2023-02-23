@@ -22,4 +22,6 @@ npm install
 npm run dev
 ```
 
-Go to http://localhost:3006/public/buttons.html to view the PayPal Buttons component.
+Component html pages:
+- http://localhost:3006/public/buttons.html
+- http://localhost:3006/public/hosted-fields.html
