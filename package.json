@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --watch './**/*.ts' --exec 'ts-node' src/index.ts",
+    "check-node-version": "node scripts/check-node-version.js",
+    "dev": "npm run check-node-version && nodemon --watch './**/*.ts' --exec 'ts-node' src/index.ts",
     "format": "prettier --write .",
     "build": "rimraf dist && tsc",
     "start": "node dist/index.js"

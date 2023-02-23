@@ -13,6 +13,12 @@ PAYPAL_API_BASE_URL=https://api-m.sandbox.paypal.com
 PAYPAL_WEB_BASE_URL=https://www.paypal.com
 ```
 
+This application requires Node.js version 16.8.0 or higher. Ensure that the correct Node.js version is being used by running:
+
+```bash
+nvm use
+```
+
 Then install dependencies and start the local web server:
 
 ```bash
