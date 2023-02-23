@@ -2,13 +2,13 @@ const { readFileSync } = require("fs");
 const { join } = require("path");
 const semver = require("semver");
 
-const expectedNodeVersion = readFileSync(
+const minimumNodeVersion = readFileSync(
   join(__dirname, "../", ".nvmrc"),
   "utf-8"
 );
 const isValidNodeVersion = semver.satisfies(
   process.version,
-  expectedNodeVersion
+  `>= ${minimumNodeVersion}`
 );
 
 // successfully exit when Node version is valid
@@ -18,7 +18,7 @@ if (isValidNodeVersion) {
 
 const output = `
 node: ${process.version}
-Wanted node version ${expectedNodeVersion}
+Minimum node version ${expectedNodeVersion}
 `;
 
 console.error(output);
