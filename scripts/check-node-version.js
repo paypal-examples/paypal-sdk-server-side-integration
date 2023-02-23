@@ -17,8 +17,9 @@ if (isValidNodeVersion) {
 }
 
 const output = `
-node: ${process.version}
-Minimum node version ${minimumNodeVersion}
+** Invalid Node.js Version **
+current version: ${process.version}
+minimum required version: ${minimumNodeVersion}
 `;
 
 console.error(output);
