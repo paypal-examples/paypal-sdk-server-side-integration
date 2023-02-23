@@ -1,0 +1,193 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>PayPal Hosted Fields Example</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <script src="https://unpkg.com/@paypal/paypal-js@5.1.4/dist/iife/paypal-js.min.js"></script>
+
+    <style>
+      .form-input {
+        height: 25px;
+        border: 1px solid gray;
+        padding: 2px;
+        width: 200px;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>PayPal Hosted Fields Example</h1>
+    <form id="paypal-hosted-fields-form">
+      <div>
+        <label for="cc-number"> Credit card number </label>
+        <div id="cc-number" class="form-input"></div>
+      </div>
+
+      <div>
+        <label for="cc-expiration"> Expiration </label>
+        <div id="cc-expiration" class="form-input"></div>
+      </div>
+
+      <div>
+        <label for="cc-cvv"> CVV </label>
+        <div id="cc-cvv" class="form-input"></div>
+      </div>
+
+      <button id="submit-btn">Pay</button>
+    </form>
+
+    <script>
+      function loadPayPalSDK(dataClientToken) {
+        return fetch("/api/paypal/client-config", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((response) => response.json())
+          .then(({ clientID, webBaseUrl }) => {
+            return paypalLoadScript({
+              "client-id": clientID,
+              sdkBaseURL: `${webBaseUrl}/sdk/js`,
+              components: "hosted-fields",
+              "data-client-token": dataClientToken,
+            });
+          });
+      }
+
+      function generateClientToken() {
+        return fetch("/api/paypal/generate-client-token", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((response) => response.json())
+          .then(({ client_token }) => client_token);
+      }
+
+      function createOrder() {
+        return fetch("/api/paypal/create-order", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            cart: [
+              {
+                sku: "1blwyeo8",
+                quantity: 2,
+              },
+              {
+                sku: "i5b1g92y",
+                quantity: 1,
+              },
+              // uncomment this to force an error
+              // {
+              //   sku: "xyw5kd7k",
+              //   quantity: 1,
+              // },
+            ],
+          }),
+        })
+          .then((response) => response.json())
+          .then((orderData) => {
+            if (orderData.id === undefined) {
+              // throw an error if orderID is missing
+              throw new Error(orderData.message);
+            }
+
+            return orderData.id;
+          })
+          .catch((error) => {
+            throw new Error(`createOrder callback failed - ${error.message}`);
+          });
+      }
+
+      function onApprove(orderID) {
+        return fetch("/api/paypal/capture-order", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ orderID }),
+        })
+          .then((response) => response.json())
+          .then((orderData) => {
+            // check payload for error
+            if (Array.isArray(orderData.details) && orderData.details[0]) {
+              return console.error({
+                callback: "onApprove",
+                errorDetail: orderData,
+              });
+            }
+
+            // successful capture
+            console.log(
+              "Capture result",
+              orderData,
+              JSON.stringify(orderData, null, 2)
+            );
+          });
+      }
+
+      generateClientToken()
+        .then(loadPayPalSDK)
+        .then(() => {
+          window.paypal.HostedFields.render({
+            fields: {
+              number: {
+                selector: "#cc-number",
+                placeholder: "4111 1111 1111 1111",
+              },
+              cvv: {
+                selector: "#cc-cvv",
+                placeholder: "123",
+                maskInput: true,
+              },
+              expirationDate: {
+                selector: "#cc-expiration",
+                placeholder: "MM / YY",
+              },
+            },
+            createOrder() {
+              return createOrder();
+            },
+            onError(error) {
+              console.error({
+                callback: "onError",
+                errorObject: error,
+              });
+            },
+          })
+            .then((hostedFieldsInstance) => {
+              const form = document.getElementById("paypal-hosted-fields-form");
+
+              form.addEventListener("submit", (event) => {
+                event.preventDefault();
+
+                hostedFieldsInstance
+                  .submit()
+                  .then((hostedFieldsOrderData) => {
+                    console.log({
+                      callback: "submit",
+                      hostedFieldsOrderData,
+                    });
+
+                    return onApprove(hostedFieldsOrderData.orderId);
+                  })
+                  .catch((error) => {
+                    console.error("failed to submit payment", error);
+                  });
+              });
+            })
+            .catch((error) => {
+              console.error("failed to render the PayPal Hosted Fields", error);
+            });
+        });
+    </script>
+  </body>
+</html>
