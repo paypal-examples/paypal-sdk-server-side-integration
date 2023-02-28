@@ -57,7 +57,6 @@ export async function getOrder(accessToken: string, orderID: string) {
       throw error;
     }
 
-    // TODO: define type for retrieve order response
     return data as OrderResponseBody;
   } catch (error) {
     const httpError: HttpErrorResponse =

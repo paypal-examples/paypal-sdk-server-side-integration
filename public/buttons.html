@@ -114,7 +114,7 @@
                 errorObject: error,
               });
             },
-            onShippingChange(data) {
+            onShippingChange(data, actions) {
               return fetch("/api/paypal/patch-order", {
                 method: "PATCH",
                 headers: {
@@ -122,9 +122,14 @@
                 },
                 body: JSON.stringify({
                   orderID: data.orderID,
-                  // selectedShippingOption: data.selected_shipping_option,
+                  shippingAddress: data.shipping_address,
                 }),
-              }).then((response) => response.json());
+              }).then((response) => {
+                if (response.status === 204) {
+                  return actions.resolve();
+                }
+                return actions.reject();
+              });
             },
           })
           .render("#paypal-buttons-container")

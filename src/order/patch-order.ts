@@ -1,6 +1,8 @@
 import { fetch } from "undici";
 import config from "../config";
-import { getOrder } from "./retrieve-order";
+import { getOrder } from "./get-order";
+import type { ShippingAddress } from "@paypal/paypal-js";
+import shippings from "../data/shippings.json";
 
 const {
   paypal: { apiBaseUrl },
@@ -20,13 +22,16 @@ type HttpErrorResponse = {
 
 export async function onShippingChange(
   accessToken: string,
-  orderID: string
+  patchOrderPayload: {
+    orderID: string;
+    shippingAddress: ShippingAddress;
+  }
 ) {
   if (!accessToken) {
     throw new Error("MISSING_ACCESS_TOKEN");
   }
 
-  if (!orderID) {
+  if (!patchOrderPayload) {
     throw new Error("MISSING_ORDER_ID_FOR_PATCH_ORDER");
   }
 
@@ -34,33 +39,45 @@ export async function onShippingChange(
 
   let response;
   try {
-    //retrieve order details
-    const orderDetails = await getOrder(
-      accessToken,
-      orderID
-    );
+    //get order details
+    const orderDetails = await getOrder(accessToken, patchOrderPayload.orderID);
+
     //calculate the order amount
     let totalBaseAmount = 0;
-    orderDetails?.purchase_units?.map((unit) => {
-      const breakdownValue = parseFloat(unit?.amount?.value ?? "0");
-      const breakdownShipping = parseFloat(
-        unit?.amount?.breakdown?.shipping?.value ?? "0"
+    let totalNewAmount = 0;
+    let totalShipping = 0;
+    const breakdownValue = parseFloat(
+      orderDetails?.purchase_units[0]?.amount?.value ?? "0"
+    );
+    const state = patchOrderPayload.shippingAddress
+      .state as keyof typeof shippings;
+    let breakdownShipping = 0;
+    if (shippings[state] === undefined) {
+      breakdownShipping = parseFloat(shippings["DEFAULT"].price);
+    } else {
+      breakdownShipping = parseFloat(shippings[state].price);
+    }
+    const breakdownShippingDiscount = parseFloat(
+      orderDetails?.purchase_units[0]?.amount?.breakdown?.shipping_discount
+        ?.value ?? "0"
+    );
+    if (breakdownValue > 0) {
+      totalShipping = breakdownShipping - breakdownShippingDiscount;
+      totalBaseAmount = parseFloat(
+        orderDetails?.purchase_units[0]?.amount?.breakdown?.item_total?.value ??
+          "0"
       );
-      const breakdownShippingDiscount = parseFloat(
-        unit?.amount?.breakdown?.shipping_discount?.value ?? "0"
-      );
-      if (breakdownValue > 0) {
-        totalBaseAmount += parseFloat(
-          (
-            breakdownValue -
-            (breakdownShipping - breakdownShippingDiscount)
-          ).toFixed(2)
-        );
-      }
-    });
+    }
+
+    totalNewAmount = totalBaseAmount + totalShipping;
+
+    orderDetails.purchase_units[0].amount.value = totalNewAmount.toString();
+    orderDetails.purchase_units[0].amount.currency_code = "USD";
+    orderDetails.purchase_units[0].amount.breakdown!.shipping!.value! =
+      totalShipping.toString();
 
     response = await fetch(
-      `${apiBaseUrl}/v2/checkout/orders/${orderID}`,
+      `${apiBaseUrl}/v2/checkout/orders/${patchOrderPayload.orderID}`,
       {
         method: "PATCH",
         headers: {
@@ -71,10 +88,8 @@ export async function onShippingChange(
         body: JSON.stringify([
           {
             op: "replace",
-            path: "/purchase_units/@reference_id=='default'",
-            value: {
-              amount: { value: totalBaseAmount, currency_code: "USD" },
-            },
+            path: "/purchase_units/@reference_id=='default'/amount",
+            value: orderDetails.purchase_units[0].amount,
           },
         ]),
       }
@@ -86,6 +101,7 @@ export async function onShippingChange(
     }
 
     const data = await response.json();
+
     const errorData = data as PatchOrderErrorResponse;
     if (!errorData.name) {
       throw new Error(defaultErrorMessage);

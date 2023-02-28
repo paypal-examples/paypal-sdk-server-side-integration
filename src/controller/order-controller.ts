@@ -4,16 +4,20 @@ import getAuthToken from "../auth/get-auth-token";
 import createOrder from "../order/create-order";
 import captureOrder from "../order/capture-order";
 import products from "../data/products.json";
-import type { CreateOrderRequestBody, PurchaseItem } from "@paypal/paypal-js";
+import type {
+  CreateOrderRequestBody,
+  PurchaseItem,
+  ShippingAddress,
+} from "@paypal/paypal-js";
 import { onShippingChange } from "../order/patch-order";
-import { getOrder } from "../order/retrieve-order";
+import { getOrder } from "../order/get-order";
 
 type CartItem = {
   sku: keyof typeof products;
   quantity: number;
 };
 
-function getTotalAmount(cartItems: CartItem[]): string {
+function getTotalAmount(cartItems: CartItem[]): number {
   const amountValue = cartItems
     .map(({ sku, quantity }) => {
       if (!products[sku] || !Number.isInteger(quantity)) {
@@ -24,7 +28,7 @@ function getTotalAmount(cartItems: CartItem[]): string {
     .reduce((partialSum, a) => partialSum + a, 0);
 
   const roundedAmount = Math.round((amountValue + Number.EPSILON) * 100) / 100;
-  return roundedAmount.toString();
+  return roundedAmount;
 }
 
 async function createOrderHandler(
@@ -42,11 +46,15 @@ async function createOrderHandler(
       {
         amount: {
           currency_code: "USD",
-          value: totalAmount,
+          value: (totalAmount + 5).toString(),
           breakdown: {
             item_total: {
               currency_code: "USD",
-              value: totalAmount,
+              value: totalAmount.toString(),
+            },
+            shipping: {
+              currency_code: "USD",
+              value: "5",
             },
           },
         },
@@ -64,40 +72,6 @@ async function createOrderHandler(
             },
           } as PurchaseItem;
         }),
-        shipping: {
-          options: [
-            {
-              id: "SHIP_123",
-              label: "Free Shipping",
-              type: "SHIPPING",
-              selected: false,
-              amount: {
-                value: "3.00",
-                currency_code: "USD",
-              },
-            },
-            {
-              id: "SHIP_456",
-              label: "Pick up in Store",
-              type: "PICKUP",
-              selected: false,
-              amount: {
-                value: "0.00",
-                currency_code: "USD",
-              },
-            },
-            {
-              id: "SHIP_789",
-              label: "Prime Shipping",
-              type: "SHIPPING",
-              selected: true,
-              amount: {
-                value: "8.00",
-                currency_code: "USD",
-              },
-            },
-          ],
-        },
       },
     ],
   };
@@ -176,11 +150,17 @@ export type ShippingOption = {
 };
 
 async function patchOrderHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { orderID } = request.body as {orderID: string};
+  const { orderID, shippingAddress } = request.body as {
+    orderID: string;
+    shippingAddress: ShippingAddress;
+  };
   const { access_token: accessToken } = await getAuthToken();
-
-  const data = await onShippingChange(accessToken, orderID);
-  if (JSON.stringify(data) !== '{}') {
+  const patchOrderPayload = {
+    orderID,
+    shippingAddress,
+  };
+  const data = await onShippingChange(accessToken, patchOrderPayload);
+  if (JSON.stringify(data) !== "{}") {
     reply.send(data);
   } else {
     // Send a response with a 204 status code and no body
@@ -207,11 +187,8 @@ export async function patchOrderController(fastify: FastifyInstance) {
   });
 }
 
-//retrieve order details
-async function getOrderHandler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+//get order details
+async function getOrderHandler(request: FastifyRequest, reply: FastifyReply) {
   const { access_token: accessToken } = await getAuthToken();
   const { orderID } = request.body as { orderID: string };
   const data = await getOrder(accessToken, orderID);
@@ -221,7 +198,12 @@ async function getOrderHandler(
 export async function getOrderController(fastify: FastifyInstance) {
   fastify.route({
     method: "GET",
-    url: "/retrieve-order",
+    url: "/get-order",
     handler: getOrderHandler,
+    schema: {
+      querystring: {
+       orderID: { type: 'string' }
+     }
+    }
   });
 }
