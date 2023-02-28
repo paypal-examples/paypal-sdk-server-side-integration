@@ -2,7 +2,7 @@ import { fetch } from "undici";
 import config from "../config";
 import { getOrder } from "./get-order";
 import type { ShippingAddress } from "@paypal/paypal-js";
-import shippings from "../data/shippings.json";
+import shippingCost from "../data/shipping-cost.json";
 
 const {
   paypal: { apiBaseUrl },
@@ -50,12 +50,12 @@ export async function onShippingChange(
       orderDetails?.purchase_units[0]?.amount?.value ?? "0"
     );
     const state = patchOrderPayload.shippingAddress
-      .state as keyof typeof shippings;
+      .state as keyof typeof shippingCost;
     let breakdownShipping = 0;
-    if (shippings[state] === undefined) {
-      breakdownShipping = parseFloat(shippings["DEFAULT"].price);
+    if (shippingCost[state] === undefined) {
+      breakdownShipping = parseFloat(shippingCost.DEFAULT.price);
     } else {
-      breakdownShipping = parseFloat(shippings[state].price);
+      breakdownShipping = parseFloat(shippingCost[state].price);
     }
     const breakdownShippingDiscount = parseFloat(
       orderDetails?.purchase_units[0]?.amount?.breakdown?.shipping_discount

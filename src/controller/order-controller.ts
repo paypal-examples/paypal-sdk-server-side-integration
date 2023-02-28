@@ -11,6 +11,7 @@ import type {
 } from "@paypal/paypal-js";
 import { onShippingChange } from "../order/patch-order";
 import { getOrder } from "../order/get-order";
+import shippingCost from "../data/shipping-cost.json";
 
 type CartItem = {
   sku: keyof typeof products;
@@ -46,7 +47,7 @@ async function createOrderHandler(
       {
         amount: {
           currency_code: "USD",
-          value: (totalAmount + 5).toString(),
+          value: (totalAmount + parseFloat(shippingCost.DEFAULT.price)).toString(),
           breakdown: {
             item_total: {
               currency_code: "USD",
@@ -54,7 +55,7 @@ async function createOrderHandler(
             },
             shipping: {
               currency_code: "USD",
-              value: "5",
+              value: shippingCost.DEFAULT.price,
             },
           },
         },
