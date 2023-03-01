@@ -41,8 +41,6 @@ export async function onShippingChange(
   try {
     //get order details
     const orderDetails = await getOrder(accessToken, patchOrderPayload.orderID);
-    //calculate the order amount
-    let totalNewAmount = 0;
     const state = patchOrderPayload.shippingAddress
       .state as keyof typeof shippingCost;
 
@@ -52,33 +50,17 @@ export async function onShippingChange(
     } else {
       breakdownShipping = parseFloat(shippingCost[state].price);
     }
+    const amountBreakdown =
+      orderDetails?.purchase_units[0]?.amount?.breakdown ?? {};
     // total amount should equal item_total + tax_total + shipping + handling + insurance - shipping_discount - discount.
-    totalNewAmount =
-      parseFloat(
-        orderDetails?.purchase_units[0]?.amount?.breakdown?.item_total?.value ??
-          "0"
-      ) +
+    const totalNewAmount =
+      parseFloat(amountBreakdown?.item_total?.value ?? "0") +
+      parseFloat(amountBreakdown?.tax_total?.value ?? "0") +
       breakdownShipping +
-      parseFloat(
-        orderDetails?.purchase_units[0]?.amount?.breakdown?.tax_total?.value ??
-          "0"
-      ) +
-      parseFloat(
-        orderDetails?.purchase_units[0]?.amount?.breakdown?.handling?.value ??
-          "0"
-      ) +
-      parseFloat(
-        orderDetails?.purchase_units[0]?.amount?.breakdown?.insurance?.value ??
-          "0"
-      ) -
-      parseFloat(
-        orderDetails?.purchase_units[0]?.amount?.breakdown?.shipping_discount
-          ?.value ?? "0"
-      ) -
-      parseFloat(
-        orderDetails?.purchase_units[0]?.amount?.breakdown?.discount?.value ??
-          "0"
-      );
+      parseFloat(amountBreakdown?.handling?.value ?? "0") +
+      parseFloat(amountBreakdown?.insurance?.value ?? "0") -
+      parseFloat(amountBreakdown?.shipping_discount?.value ?? "0") -
+      parseFloat(amountBreakdown?.discount?.value ?? "0");
 
     orderDetails.purchase_units[0].amount.value = totalNewAmount.toString();
     orderDetails.purchase_units[0].amount.currency_code = "USD";
