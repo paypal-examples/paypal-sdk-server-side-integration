@@ -50,22 +50,24 @@ export async function onShippingChange(
     } else {
       breakdownShipping = parseFloat(shippingCost[state].price);
     }
-    const amountBreakdown =
-      orderDetails?.purchase_units[0]?.amount?.breakdown ?? {};
+
     // total amount should equal item_total + tax_total + shipping + handling + insurance - shipping_discount - discount.
-    const totalNewAmount =
-      parseFloat(amountBreakdown?.item_total?.value ?? "0") +
-      parseFloat(amountBreakdown?.tax_total?.value ?? "0") +
-      breakdownShipping +
-      parseFloat(amountBreakdown?.handling?.value ?? "0") +
-      parseFloat(amountBreakdown?.insurance?.value ?? "0") -
-      parseFloat(amountBreakdown?.shipping_discount?.value ?? "0") -
-      parseFloat(amountBreakdown?.discount?.value ?? "0");
+    orderDetails!.purchase_units[0]!.amount!.breakdown!.shipping = {
+      value: breakdownShipping.toString(),
+      currency_code: "USD",
+    };
+    const totalNewAmount = Object.entries(
+      orderDetails!.purchase_units[0]!.amount!.breakdown!
+    ).reduce((partialSum, [bdName, bdValue]) => {
+      if (bdName.includes("discount")) {
+        return partialSum - parseFloat(bdValue.value);
+      } else {
+        return partialSum + parseFloat(bdValue.value);
+      }
+    }, 0);
 
     orderDetails.purchase_units[0].amount.value = totalNewAmount.toString();
     orderDetails.purchase_units[0].amount.currency_code = "USD";
-    orderDetails.purchase_units[0].amount.breakdown!.shipping!.value! =
-      breakdownShipping.toString();
 
     response = await fetch(
       `${apiBaseUrl}/v2/checkout/orders/${patchOrderPayload.orderID}`,
