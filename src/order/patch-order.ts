@@ -41,40 +41,49 @@ export async function onShippingChange(
   try {
     //get order details
     const orderDetails = await getOrder(accessToken, patchOrderPayload.orderID);
-
     //calculate the order amount
-    let totalBaseAmount = 0;
     let totalNewAmount = 0;
-    let totalShipping = 0;
-    const breakdownValue = parseFloat(
-      orderDetails?.purchase_units[0]?.amount?.value ?? "0"
-    );
     const state = patchOrderPayload.shippingAddress
       .state as keyof typeof shippingCost;
+
     let breakdownShipping = 0;
     if (shippingCost[state] === undefined) {
       breakdownShipping = parseFloat(shippingCost.DEFAULT.price);
     } else {
       breakdownShipping = parseFloat(shippingCost[state].price);
     }
-    const breakdownShippingDiscount = parseFloat(
-      orderDetails?.purchase_units[0]?.amount?.breakdown?.shipping_discount
-        ?.value ?? "0"
-    );
-    if (breakdownValue > 0) {
-      totalShipping = breakdownShipping - breakdownShippingDiscount;
-      totalBaseAmount = parseFloat(
-        orderDetails?.purchase_units[0]?.amount?.breakdown?.item_total?.value ??
+    // total amount should equal item_total + tax_total + shipping + handling + insurance - shipping_discount - discount.
+    totalNewAmount =
+      parseFloat(
+        orderDetails?.purchase_units[0]!.amount!.breakdown!.item_total!.value ??
+          "0"
+      ) +
+      breakdownShipping +
+      parseFloat(
+        orderDetails?.purchase_units[0]?.amount?.breakdown?.tax_total?.value ??
+          "0"
+      ) +
+      parseFloat(
+        orderDetails?.purchase_units[0]?.amount?.breakdown?.handling?.value ??
+          "0"
+      ) +
+      parseFloat(
+        orderDetails?.purchase_units[0]?.amount?.breakdown?.insurance?.value ??
+          "0"
+      ) -
+      parseFloat(
+        orderDetails?.purchase_units[0]?.amount?.breakdown?.shipping_discount
+          ?.value ?? "0"
+      ) -
+      parseFloat(
+        orderDetails?.purchase_units[0]?.amount?.breakdown?.discount?.value ??
           "0"
       );
-    }
-
-    totalNewAmount = totalBaseAmount + totalShipping;
 
     orderDetails.purchase_units[0].amount.value = totalNewAmount.toString();
     orderDetails.purchase_units[0].amount.currency_code = "USD";
     orderDetails.purchase_units[0].amount.breakdown!.shipping!.value! =
-      totalShipping.toString();
+      breakdownShipping.toString();
 
     response = await fetch(
       `${apiBaseUrl}/v2/checkout/orders/${patchOrderPayload.orderID}`,

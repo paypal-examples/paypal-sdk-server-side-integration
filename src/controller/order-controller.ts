@@ -139,17 +139,6 @@ export async function captureOrderController(fastify: FastifyInstance) {
 }
 
 // Patch order
-export type ShippingOption = {
-  id: string;
-  label: string;
-  type: string;
-  selected: boolean;
-  amount: {
-    value: string;
-    currency_code: string;
-  };
-};
-
 async function patchOrderHandler(request: FastifyRequest, reply: FastifyReply) {
   const { orderID, shippingAddress } = request.body as {
     orderID: string;
