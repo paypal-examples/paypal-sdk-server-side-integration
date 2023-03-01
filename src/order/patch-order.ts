@@ -55,7 +55,7 @@ export async function onShippingChange(
     // total amount should equal item_total + tax_total + shipping + handling + insurance - shipping_discount - discount.
     totalNewAmount =
       parseFloat(
-        orderDetails?.purchase_units[0]!.amount!.breakdown!.item_total!.value ??
+        orderDetails?.purchase_units[0]?.amount?.breakdown?.item_total?.value ??
           "0"
       ) +
       breakdownShipping +
