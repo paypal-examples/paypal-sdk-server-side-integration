@@ -4,15 +4,21 @@ import getAuthToken from "../auth/get-auth-token";
 import createOrder from "../order/create-order";
 import captureOrder from "../order/capture-order";
 import products from "../data/products.json";
-
-import type { CreateOrderRequestBody, PurchaseItem } from "@paypal/paypal-js";
+import type {
+  CreateOrderRequestBody,
+  PurchaseItem,
+  ShippingAddress,
+} from "@paypal/paypal-js";
+import { onShippingChange } from "../order/patch-order";
+import { getOrder } from "../order/get-order";
+import shippingCost from "../data/shipping-cost.json";
 
 type CartItem = {
   sku: keyof typeof products;
   quantity: number;
 };
 
-function getTotalAmount(cartItems: CartItem[]): string {
+function getTotalAmount(cartItems: CartItem[]): number {
   const amountValue = cartItems
     .map(({ sku, quantity }) => {
       if (!products[sku] || !Number.isInteger(quantity)) {
@@ -23,7 +29,7 @@ function getTotalAmount(cartItems: CartItem[]): string {
     .reduce((partialSum, a) => partialSum + a, 0);
 
   const roundedAmount = Math.round((amountValue + Number.EPSILON) * 100) / 100;
-  return roundedAmount.toString();
+  return roundedAmount;
 }
 
 async function createOrderHandler(
@@ -41,11 +47,15 @@ async function createOrderHandler(
       {
         amount: {
           currency_code: "USD",
-          value: totalAmount,
+          value: (totalAmount + parseFloat(shippingCost.DEFAULT.price)).toString(),
           breakdown: {
             item_total: {
               currency_code: "USD",
-              value: totalAmount,
+              value: totalAmount.toString(),
+            },
+            shipping: {
+              currency_code: "USD",
+              value: shippingCost.DEFAULT.price,
             },
           },
         },
@@ -125,5 +135,76 @@ export async function captureOrderController(fastify: FastifyInstance) {
         },
       },
     },
+  });
+}
+
+// Patch order
+export type ShippingOption = {
+  id: string;
+  label: string;
+  type: string;
+  selected: boolean;
+  amount: {
+    value: string;
+    currency_code: string;
+  };
+};
+
+async function patchOrderHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { orderID, shippingAddress } = request.body as {
+    orderID: string;
+    shippingAddress: ShippingAddress;
+  };
+  const { access_token: accessToken } = await getAuthToken();
+  const patchOrderPayload = {
+    orderID,
+    shippingAddress,
+  };
+  const data = await onShippingChange(accessToken, patchOrderPayload);
+  if (JSON.stringify(data) !== "{}") {
+    reply.send(data);
+  } else {
+    // Send a response with a 204 status code and no body
+    reply.code(204).send();
+  }
+}
+
+export async function patchOrderController(fastify: FastifyInstance) {
+  fastify.route({
+    method: "PATCH",
+    url: "/patch-order",
+    handler: patchOrderHandler,
+    schema: {
+      body: {
+        type: "object",
+        required: ["orderID"],
+        properties: {
+          orderId: {
+            type: "string",
+          },
+        },
+      },
+    },
+  });
+}
+
+//get order details
+async function getOrderHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { access_token: accessToken } = await getAuthToken();
+  const { orderID } = request.body as { orderID: string };
+  const data = await getOrder(accessToken, orderID);
+  reply.send(data);
+}
+
+export async function getOrderController(fastify: FastifyInstance) {
+  fastify.route({
+    method: "GET",
+    url: "/get-order",
+    handler: getOrderHandler,
+    schema: {
+      querystring: {
+       orderID: { type: 'string' }
+     }
+    }
   });
 }
