@@ -47,7 +47,9 @@ async function createOrderHandler(
       {
         amount: {
           currency_code: "USD",
-          value: (totalAmount + parseFloat(shippingCost.DEFAULT.price)).toString(),
+          value: (
+            totalAmount + parseFloat(shippingCost.DEFAULT.price)
+          ).toString(),
           breakdown: {
             item_total: {
               currency_code: "USD",
@@ -138,18 +140,6 @@ export async function captureOrderController(fastify: FastifyInstance) {
   });
 }
 
-// Patch order
-export type ShippingOption = {
-  id: string;
-  label: string;
-  type: string;
-  selected: boolean;
-  amount: {
-    value: string;
-    currency_code: string;
-  };
-};
-
 async function patchOrderHandler(request: FastifyRequest, reply: FastifyReply) {
   const { orderID, shippingAddress } = request.body as {
     orderID: string;
@@ -188,7 +178,6 @@ export async function patchOrderController(fastify: FastifyInstance) {
   });
 }
 
-//get order details
 async function getOrderHandler(request: FastifyRequest, reply: FastifyReply) {
   const { access_token: accessToken } = await getAuthToken();
   const { orderID } = request.body as { orderID: string };
@@ -203,8 +192,8 @@ export async function getOrderController(fastify: FastifyInstance) {
     handler: getOrderHandler,
     schema: {
       querystring: {
-       orderID: { type: 'string' }
-     }
-    }
+        orderID: { type: "string" },
+      },
+    },
   });
 }
