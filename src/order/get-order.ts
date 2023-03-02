@@ -1,5 +1,6 @@
 import { fetch } from "undici";
 import config from "../config";
+import getAuthToken from "../auth/get-auth-token";
 import type { OrderResponseBody } from "@paypal/paypal-js";
 
 const {
@@ -18,7 +19,10 @@ type HttpErrorResponse = {
   details?: Record<string, string>;
 } & Error;
 
-export async function getOrder(accessToken: string, orderID: string) {
+export default async function getOrder(
+  orderID: string
+): Promise<{ data: OrderResponseBody; httpStatus: number }> {
+  const { access_token: accessToken } = await getAuthToken();
   if (!accessToken) {
     throw new Error("MISSING_ACCESS_TOKEN");
   }
@@ -32,7 +36,7 @@ export async function getOrder(accessToken: string, orderID: string) {
   let response;
   try {
     response = await fetch(`${apiBaseUrl}/v2/checkout/orders/${orderID}`, {
-      method: "get",
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
@@ -40,24 +44,8 @@ export async function getOrder(accessToken: string, orderID: string) {
       },
     });
 
-    const data: OrderResponseBody | getOrderErrorResponse | unknown =
-      await response.json();
-
-    if (response.status !== 200 && response.status !== 201) {
-      const errorData = data as getOrderErrorResponse;
-      if (!errorData.name) {
-        throw new Error(defaultErrorMessage);
-      }
-
-      const { name, message, debug_id, details } = errorData;
-      const errorMessage = `${name} - ${message} (debug_id: ${debug_id})`;
-
-      const error: HttpErrorResponse = new Error(errorMessage);
-      error.details = details as Record<string, string>;
-      throw error;
-    }
-
-    return data as OrderResponseBody;
+    const data = (await response.json()) as OrderResponseBody;
+    return { data, httpStatus: response.status }; //data as OrderResponseBody;
   } catch (error) {
     const httpError: HttpErrorResponse =
       error instanceof Error ? error : new Error(defaultErrorMessage);

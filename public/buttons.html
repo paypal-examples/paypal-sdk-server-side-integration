@@ -10,17 +10,33 @@
   </head>
   <body>
     <h1>PayPal Buttons Example</h1>
-    <div id="paypal-buttons-container"></div>
+    <div id="paypal-button-container" style="max-width: 440px"></div>
     <script>
       function loadPayPalSDK() {
         return fetch("/api/paypal/client-config")
           .then((response) => response.json())
-          .then(({ clientID, webBaseUrl }) => {
+          .then(({ clientID, webBaseUrl, currency, intent }) => {
             return paypalLoadScript({
+              // Supported query parameters: https://developer.paypal.com/sdk/js/configuration/#link-queryparameters
               "client-id": clientID,
               sdkBaseURL: `${webBaseUrl}/sdk/js`,
+              intent: intent?.toLowerCase(),
+              currency: currency,
+              // "enable-funding": "venmo", // Venmo button will only render to payers with a US IP and currency=USD transactions
+              // "buyer-country": "US", // Simulate a differnet geographic IP to see which buttons will display there. May only be used in sandbox mode.
+              // "locale": "en_US", // Render buttons in a different language--by default the browser language is detected and used.
             });
           });
+      }
+
+      // Example function to show a result to the user. Your site's UI library can be used instead,
+      // however alert() should not be used as it will interrupt the JS SDK window
+      function resultMessage(message, hideButtons = false) {
+        const container = document.getElementById("paypal-button-container");
+        if (hideButtons) container.style.display = "none";
+        const p = document.createElement("p");
+        p.innerHTML = `<big>${message}</big>`;
+        container.parentNode.appendChild(p);
       }
 
       loadPayPalSDK().then(() => {
@@ -42,7 +58,7 @@
                       sku: "i5b1g92y",
                       quantity: 1,
                     },
-                    // uncomment this to force an error
+                    // uncomment the following to force an order creation error (negative amount on product)
                     // {
                     //   sku: "xyw5kd7k",
                     //   quantity: 1,
@@ -52,12 +68,25 @@
               })
                 .then((response) => response.json())
                 .then((orderData) => {
-                  if (orderData.id === undefined) {
-                    // throw an error if orderID is missing
-                    throw new Error(orderData.message);
+                  if (orderData?.id) {
+                    return orderData.id;
+                  } else {
+                    console.error(
+                      { callback: "createOrder", serverResponse: orderData },
+                      JSON.stringify(orderData, null, 2)
+                    );
+                    // (Optional) The following hides the button container and shows a message about why checkout can't be initiated
+                    const errorDetail = orderData?.details?.[0];
+                    resultMessage(
+                      `Could not initiate PayPal Checkout...<br><br>${
+                        errorDetail?.issue || ""
+                      } ${
+                        errorDetail?.description || orderData?.message || ""
+                      } ` +
+                        (orderData?.debug_id ? `(${orderData.debug_id})` : ""),
+                      (hideButtons = true)
+                    );
                   }
-
-                  return orderData.id;
                 })
                 .catch((error) => {
                   throw new Error(
@@ -80,32 +109,50 @@
                   //   (2) Other non-recoverable errors -> Show a failure message
                   //   (3) Successful transaction -> Show confirmation or thank you
 
-                  const errorDetail =
-                    Array.isArray(orderData.details) && orderData.details[0];
+                  const errorDetail = orderData?.details?.[0];
 
-                  if (
-                    errorDetail &&
-                    errorDetail.issue === "INSTRUMENT_DECLINED"
-                  ) {
-                    // recoverable state
-                    // https://developer.paypal.com/docs/checkout/standard/customize/handle-funding-failures/
+                  if (errorDetail?.issue === "INSTRUMENT_DECLINED") {
+                    // recoverable state, per https://developer.paypal.com/docs/checkout/standard/customize/handle-funding-failures/
                     return actions.restart();
-                  }
-
-                  // non-recoverable state
-                  if (errorDetail) {
-                    return console.error({
+                  } else if (errorDetail) {
+                    // Any other error (non-recoverable)
+                    console.error({
                       callback: "onApprove",
-                      errorDetail: orderData,
+                      response: orderData,
                     });
-                  }
+                    // Display a clear failure message informing the user the transaction failed.
+                    resultMessage(
+                      `Sorry, your transaction could not be processed. <br><br>${
+                        errorDetail?.description || ""
+                      } (${orderData?.debug_id || ""})`
+                    );
+                  } else {
+                    // Successful transaction!
+                    const transaction =
+                      orderData?.purchase_units?.[0]?.payments?.captures?.[0] ||
+                      orderData?.purchase_units?.[0]?.payments
+                        ?.authorizations?.[0];
 
-                  // successful capture
-                  console.log(
-                    "Capture result",
-                    orderData,
-                    JSON.stringify(orderData, null, 2)
-                  );
+                    // Show a success message to the payer somewhere on this page...
+                    resultMessage(`<h3>Thank you for your payment!</h3>`);
+                    // Or, go to another URL with:  window.location.href = 'thank_you.html';
+
+                    // Optionally show your own order number/invoice_id to the payer (if set for this transaction)
+                    if (transaction?.invoice_id)
+                      resultMessage(
+                        `Your order number: ${transaction.invoice_id}`
+                      );
+
+                    // For demo purposes:
+                    console.log(
+                      "Capture result",
+                      orderData,
+                      JSON.stringify(orderData, null, 2)
+                    );
+                    resultMessage(
+                      `Transaction ${transaction.status}: ${transaction.id}<br><br>See console for all available details`
+                    );
+                  }
                 });
             },
             onError(error) {
@@ -114,6 +161,7 @@
                 errorObject: error,
               });
             },
+
             onShippingChange(data, actions) {
               return fetch("/api/paypal/patch-order", {
                 method: "PATCH",
@@ -132,7 +180,7 @@
               });
             },
           })
-          .render("#paypal-buttons-container")
+          .render("#paypal-button-container")
           .catch((error) => {
             console.error("failed to render the PayPal Buttons", error);
           });

@@ -16,6 +16,7 @@ type CaptureOrderErrorResponse = {
 type HttpErrorResponse = {
   statusCode?: number;
   details?: Record<string, string>;
+  debug_id?: string;
 } & Error;
 
 export default async function captureOrder(
@@ -42,32 +43,17 @@ export default async function captureOrder(
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
           "Accept-Language": "en_US",
-          // uncomment this to force an error for negative testing
+          // Uncomment one of these to force an error for negative testing (in sandbox mode only). Documentation:
           // https://developer.paypal.com/tools/sandbox/negative-testing/request-headers/
           // "PayPal-Mock-Response": '{"mock_application_codes": "INSTRUMENT_DECLINED"}'
+          // "PayPal-Mock-Response": '{"mock_application_codes": "TRANSACTION_REFUSED"}'
         },
       }
     );
 
-    const data = await response.json();
+    const data: any = await response.json(); //TODO: define type for capture order response
 
-    if (response.status !== 200 && response.status !== 201) {
-      const errorData = data as CaptureOrderErrorResponse;
-
-      if (!errorData.name) {
-        throw new Error(defaultErrorMessage);
-      }
-
-      const { name, message, debug_id, details } = errorData;
-      const errorMessage = `${name} - ${message} (debug_id: ${debug_id})`;
-
-      const error: HttpErrorResponse = new Error(errorMessage);
-      error.details = details;
-      throw error;
-    }
-
-    // TODO: define type for capture order response
-    return data;
+    return { data, httpStatus: response.status }; // TODO: define type for capture order response
   } catch (error) {
     const httpError: HttpErrorResponse =
       error instanceof Error ? error : new Error(defaultErrorMessage);

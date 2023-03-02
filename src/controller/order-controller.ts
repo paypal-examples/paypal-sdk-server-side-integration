@@ -3,84 +3,137 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import getAuthToken from "../auth/get-auth-token";
 import createOrder from "../order/create-order";
 import captureOrder from "../order/capture-order";
+import getOrder from "../order/get-order";
+import patchOrder from "../order/patch-order";
 import products from "../data/products.json";
+import shippingCost from "../data/shipping-cost.json";
+import config from "../config";
+
 import type {
   CreateOrderRequestBody,
   PurchaseItem,
   ShippingAddress,
 } from "@paypal/paypal-js";
-import { onShippingChange } from "../order/patch-order";
-import { getOrder } from "../order/get-order";
-import shippingCost from "../data/shipping-cost.json";
+
+const {
+  paypal: { currency, intent },
+} = config;
 
 type CartItem = {
   sku: keyof typeof products;
   quantity: number;
 };
 
-function getTotalAmount(cartItems: CartItem[]): number {
-  const amountValue = cartItems
-    .map(({ sku, quantity }) => {
-      if (!products[sku] || !Number.isInteger(quantity)) {
-        return 0;
-      }
-      return parseFloat(products[sku].price) * quantity;
-    })
-    .reduce((partialSum, a) => partialSum + a, 0);
+function roundTwoDecimals(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
 
-  const roundedAmount = Math.round((amountValue + Number.EPSILON) * 100) / 100;
-  return roundedAmount;
+function getItemsAndTotal(cart: CartItem[]): {
+  itemsArray: PurchaseItem[];
+  itemTotal: number;
+} {
+  // API reference: https://developer.paypal.com/docs/api/orders/v2/#orders_create!path=purchase_units/items&t=request
+  const itemsArray = cart.map(({ sku, quantity = "1" }) => {
+    // If limited inventory applies to your use case, this is normally tracked in a database alongside other product information
+    // Static information from data/products.json is used here for demo purposes
+    const { name, description, price, category, stock = "1" } = products[sku];
+    if (stock < quantity)
+      throw new Error(`${name} ${sku} (qty: ${quantity}) is out of stock.`);
+    return {
+      name,
+      sku,
+      description,
+      category,
+      quantity,
+      unit_amount: {
+        currency_code: currency,
+        value: price,
+      },
+    } as PurchaseItem;
+  });
+
+  const itemTotal = itemsArray.reduce(
+    (partialSum, item) =>
+      partialSum + parseFloat(item.unit_amount.value) * parseInt(item.quantity),
+    0
+  );
+
+  return { itemsArray, itemTotal: roundTwoDecimals(itemTotal) };
 }
 
 async function createOrderHandler(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { cart } = request.body as { cart: CartItem[] };
   const { access_token: accessToken } = await getAuthToken();
+  const { cart } = request.body as { cart: CartItem[] };
+  const { itemsArray, itemTotal } = getItemsAndTotal(cart);
 
-  const totalAmount = getTotalAmount(cart);
+  // Example shipping and tax calculation
+  const shippingTotal = 0;
+  const taxTotal = roundTwoDecimals(itemTotal * 0.05);
+  const grandTotal = itemTotal + shippingTotal + taxTotal;
+
+  const invoiceId = "DEMO-INVNUM-" + Date.now(); // An optional transaction field value, use your existing system/business' invoice ID here or generate one sequentially
 
   const orderPayload: CreateOrderRequestBody = {
-    intent: "CAPTURE",
+    // API reference: https://developer.paypal.com/docs/api/orders/v2/#orders_create
+    intent: intent,
     purchase_units: [
       {
         amount: {
-          currency_code: "USD",
-          value: (
-            totalAmount + parseFloat(shippingCost.DEFAULT.price)
-          ).toString(),
+          currency_code: currency,
+          value: String(grandTotal),
           breakdown: {
             item_total: {
-              currency_code: "USD",
-              value: totalAmount.toString(),
+              // Required when `items` array is also present
+              currency_code: currency,
+              value: String(itemTotal),
             },
             shipping: {
-              currency_code: "USD",
-              value: shippingCost.DEFAULT.price,
+              // Can be omitted if none
+              currency_code: currency,
+              value: String(shippingTotal),
+            },
+            tax_total: {
+              // Can be omitted if none
+              currency_code: currency,
+              value: String(taxTotal),
             },
           },
         },
-        items: cart.map(({ sku, quantity }) => {
-          const { name, description, price, category } = products[sku];
-          return {
-            name,
-            sku,
-            description,
-            category: category,
-            quantity: quantity.toString(),
-            unit_amount: {
-              currency_code: "USD",
-              value: price,
-            },
-          } as PurchaseItem;
-        }),
+        items:
+          itemsArray /* Line item detail can be seen in the PayPal Checkout by clicking the amount in the upper-right, and is stored in the transaction record */,
+
+        /* invoice_id: invoiceId,  /* Your own unique order #, will be indexed and stored as part of the transaction record and searchable in paypal.com account
+                                      (Must be unique, never used for an already *successful* transaction in the receiving account;
+                                      payment attempts with the invoice_id of a previously successful transaction are blocked to prevent accidental repeat payment for same thing) */
+
+        // custom_id: "any-arbitrary-metadata-value",  /* Not indexed nor searchable, but value will be returned in all API or webhook responses and visible in the transaction record of *receiving* PayPal account */
       },
     ],
+
+    /*
+    payment_source: {
+      paypal: {
+        experience_context: {
+          // If there are no tangible items to be shipped as part of the transaction, you can specify NO_SHIPPING to not collect the payer's shipping address
+          // shipping_preference: "NO_SHIPPING",
+
+          // If after the payer's approval at PayPal you are *not* going to capture the Order ID immediately, but rather show final review step(s),
+          // set the user_action to CONTINUE (default with JS SDK approval is PAY_NOW). This is a cosmetic change to the wording of the last button at PayPal,
+          // so that it reads according to the action your integration performs on return.
+          // In summary: if CONTINUE is set here, your onApprove callback should proceed to your own review step that *requires a user action* before capture.
+          // user_action: "CONTINUE",
+        }
+      }
+    },
+    */
   };
 
-  const data = await createOrder(accessToken, orderPayload);
-  reply.send(data);
+  const { data, httpStatus } = await createOrder(accessToken, orderPayload);
+
+  reply.code(httpStatus).send(data);
 }
 
 async function captureOrderHandler(
@@ -90,8 +143,28 @@ async function captureOrderHandler(
   const { orderID } = request.body as { orderID: string };
   const { access_token: accessToken } = await getAuthToken();
 
-  const data = await captureOrder(accessToken, orderID);
-  reply.send(data);
+  const { data, httpStatus } = await captureOrder(accessToken, orderID);
+
+  const transaction =
+    data?.purchase_units?.[0]?.payments?.captures?.[0] ||
+    data?.purchase_units?.[0]?.payments?.authorizations?.[0];
+
+  if (!transaction?.id || transaction.status === "DECLINED") {
+    console.warn(`PayPal API order ${orderID}: capture failed`, data);
+  } else {
+    console.info(
+      `PayPal API order ${orderID}: successful capture`,
+      transaction
+    );
+    const capturedAmount = transaction?.amount?.value;
+    // Here you can add code to save the PayPal transaction.id in your records, perhaps calling an asynchronous database writer
+    // (Most common use case is for your own record's id to be unique and map to the transaction.invoice_id you provided during creation)
+    // Your code should validate the captured amount was as expected before doing anything automated for order fulfillment/delivery
+    // (If the total was not as expected, you could flag the transacton in your system for manual review--or refund it)
+  }
+
+  // Finally, forward a result back to the frontend 'onApprove' callback--always forward a result, since the frontend must handle success/failure display
+  reply.code(httpStatus).send(data);
 }
 
 export async function createOrderController(fastify: FastifyInstance) {
@@ -108,7 +181,7 @@ export async function createOrderController(fastify: FastifyInstance) {
             type: "array",
             items: {
               type: "object",
-              required: ["sku", "quantity"],
+              required: ["sku"],
               properties: {
                 sku: { type: "string" },
                 quantity: { type: "number" },
@@ -140,23 +213,99 @@ export async function captureOrderController(fastify: FastifyInstance) {
   });
 }
 
+// Patch order
+export type ShippingOption = {
+  id: string;
+  label: string;
+  type: string;
+  selected: boolean;
+  amount: {
+    value: string;
+    currency_code: string;
+  };
+};
+
+function calcShipping(address: ShippingAddress): String | boolean {
+  const prices = shippingCost as {
+    [key: string]: { [key: string]: string | boolean };
+  };
+  const country = address?.country_code;
+  const state = address?.state;
+  return (
+    prices?.[country]?.[state] ??
+    prices?.[country]?.DEFAULT ??
+    prices?.DEFAULT?.DEFAULT ??
+    "0"
+  );
+}
+
+async function onShippingChange(
+  orderID: string,
+  shippingAddress: ShippingAddress
+): Promise<{ data: any; httpStatus: number }> {
+  if (!orderID) {
+    throw new Error("MISSING_ORDER_ID_FOR_PATCH_ORDER");
+  }
+
+  const defaultErrorMessage = "FAILED_TO_PATCH_ORDER";
+
+  const patchOps: any = [];
+  // get the current details
+  const orderDetails = (await getOrder(orderID)).data;
+
+  // Loop over the order purchase_units array; most use cases should only have one
+  orderDetails?.purchase_units?.forEach((pu, idx) => {
+    const reference_id = pu.reference_id || "default";
+
+    // Use payer's shipping address to calculate a new shipping amount
+    const shipping = calcShipping(shippingAddress);
+    if (shipping === false)
+      throw new Error(
+        `No shipping to ${JSON.stringify(pu?.shipping?.address, null, 2)}`
+      );
+    pu!.amount!.breakdown!.shipping = {
+      value: shipping.toString(),
+      currency_code: pu.amount.currency_code || "USD",
+    };
+
+    /* Similarly you could have a new tax calculation, etc
+    const taxTotal = calcTaxFunctionHere(shippingAddress);
+    pu!.amount!.breakdown!.tax_total = {
+      value: taxTotal.toString();
+      currency_code: pu.amount.currency_code || "USD",
+    };
+    */
+
+    // Finally sum up the breakdown object's values to set the top level total
+    const grandTotal = Object.entries(pu!.amount!.breakdown!).reduce(
+      (partialSum, [bdName, bdValue]) => {
+        if (bdName.includes("discount")) {
+          return partialSum - parseFloat(bdValue.value);
+        } else {
+          return partialSum + parseFloat(bdValue.value);
+        }
+      },
+      0
+    );
+    pu!.amount!.value = grandTotal.toString();
+
+    patchOps.push({
+      op: "replace",
+      path: `/purchase_units/@reference_id=='${reference_id}'/amount`,
+      value: pu.amount,
+    });
+  }); // loop over next purchase_unit, if there is one (rare use case)
+
+  return patchOrder(orderID, patchOps);
+}
+
 async function patchOrderHandler(request: FastifyRequest, reply: FastifyReply) {
   const { orderID, shippingAddress } = request.body as {
     orderID: string;
     shippingAddress: ShippingAddress;
   };
-  const { access_token: accessToken } = await getAuthToken();
-  const patchOrderPayload = {
-    orderID,
-    shippingAddress,
-  };
-  const data = await onShippingChange(accessToken, patchOrderPayload);
-  if (JSON.stringify(data) !== "{}") {
-    reply.send(data);
-  } else {
-    // Send a response with a 204 status code and no body
-    reply.code(204).send();
-  }
+  const { data, httpStatus } = await onShippingChange(orderID, shippingAddress);
+  reply.code(httpStatus).send(data);
 }
 
 export async function patchOrderController(fastify: FastifyInstance) {
@@ -169,7 +318,7 @@ export async function patchOrderController(fastify: FastifyInstance) {
         type: "object",
         required: ["orderID"],
         properties: {
-          orderId: {
+          orderID: {
             type: "string",
           },
         },
@@ -178,10 +327,10 @@ export async function patchOrderController(fastify: FastifyInstance) {
   });
 }
 
+//get order details
 async function getOrderHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { access_token: accessToken } = await getAuthToken();
   const { orderID } = request.body as { orderID: string };
-  const data = await getOrder(accessToken, orderID);
+  const { data } = await getOrder(orderID);
   reply.send(data);
 }
 
