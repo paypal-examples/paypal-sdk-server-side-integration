@@ -31,9 +31,9 @@
 
       // Example function to show a result to the user. Your site's UI library can be used instead,
       // however alert() should not be used as it will interrupt the JS SDK window
-      function resultMessage(message, hideButtons = false) {
+      function resultMessage(message, options = { hideButtons: false }) {
         const container = document.getElementById("paypal-button-container");
-        if (hideButtons) container.style.display = "none";
+        if (options.hideButtons) container.style.display = "none";
         const p = document.createElement("p");
         p.innerHTML = `<big>${message}</big>`;
         container.parentNode.appendChild(p);
@@ -84,7 +84,7 @@
                         errorDetail?.description || orderData?.message || ""
                       } ` +
                         (orderData?.debug_id ? `(${orderData.debug_id})` : ""),
-                      (hideButtons = true)
+                      { hideButtons: true}
                     );
                   }
                 })
