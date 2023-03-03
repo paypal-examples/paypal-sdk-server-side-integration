@@ -1,18 +1,17 @@
 import { fetch } from "undici";
 import config from "../config";
-import getOrder from "./get-order";
-import type { ShippingAddress, Address } from "@paypal/paypal-js";
 import getAuthToken from "../auth/get-auth-token";
 
 const {
   paypal: { apiBaseUrl },
 } = config;
 
-type PatchOrderErrorResponse = {
+type PatchOrderResponse = {
   [key: string]: unknown;
-  name: string;
-  message: string;
-  debug_id: string;
+  details?: Record<string, string>;
+  name?: string;
+  message?: string;
+  debug_id?: string;
 };
 
 type HttpErrorResponse = {
@@ -21,23 +20,20 @@ type HttpErrorResponse = {
 } & Error;
 
 export default async function patchOrder(
-  orderId: string,
+  orderID: string,
   patchPayload: any
 ): Promise<{ data: any; httpStatus: number }> {
-  const { access_token: accessToken } = await getAuthToken();
-  if (!accessToken) {
-    throw new Error("MISSING_ACCESS_TOKEN");
-  }
-
   if (!patchPayload) {
     throw new Error("MISSING_ORDER_ID_FOR_PATCH_ORDER");
   }
+
+  const { access_token: accessToken } = await getAuthToken();
 
   const defaultErrorMessage = "FAILED_TO_PATCH_ORDER";
 
   let response;
   try {
-    response = await fetch(`${apiBaseUrl}/v2/checkout/orders/${orderId}`, {
+    response = await fetch(`${apiBaseUrl}/v2/checkout/orders/${orderID}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -47,9 +43,9 @@ export default async function patchOrder(
       body: JSON.stringify(patchPayload),
     });
 
-    const data: any = await response.json();
+    const data = (await response.json()) as PatchOrderResponse;
 
-    // A successful patch API response is 204 No Content, with no data
+    // A successful patch API response is an HTTP 204 No Content, with no data
     return { data, httpStatus: response.status };
   } catch (error) {
     const httpError: HttpErrorResponse =

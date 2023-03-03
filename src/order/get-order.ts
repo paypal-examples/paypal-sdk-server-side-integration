@@ -1,18 +1,20 @@
 import { fetch } from "undici";
 import config from "../config";
 import getAuthToken from "../auth/get-auth-token";
+
 import type { OrderResponseBody } from "@paypal/paypal-js";
 
 const {
   paypal: { apiBaseUrl },
 } = config;
 
-type getOrderErrorResponse = {
+type GetOrderResponse = {
   [key: string]: unknown;
-  name: string;
-  message: string;
-  debug_id: string;
-};
+  details?: Record<string, string>;
+  name?: string;
+  message?: string;
+  debug_id?: string;
+} & OrderResponseBody;
 
 type HttpErrorResponse = {
   statusCode?: number;
@@ -22,14 +24,11 @@ type HttpErrorResponse = {
 export default async function getOrder(
   orderID: string
 ): Promise<{ data: OrderResponseBody; httpStatus: number }> {
-  const { access_token: accessToken } = await getAuthToken();
-  if (!accessToken) {
-    throw new Error("MISSING_ACCESS_TOKEN");
-  }
-
   if (!orderID) {
     throw new Error("MISSING_ORDER_ID");
   }
+
+  const { access_token: accessToken } = await getAuthToken();
 
   const defaultErrorMessage = "FAILED_TO_PATCH_ORDER";
 
@@ -44,8 +43,9 @@ export default async function getOrder(
       },
     });
 
-    const data = (await response.json()) as OrderResponseBody;
-    return { data, httpStatus: response.status }; //data as OrderResponseBody;
+    const data = (await response.json()) as GetOrderResponse;
+
+    return { data, httpStatus: response.status };
   } catch (error) {
     const httpError: HttpErrorResponse =
       error instanceof Error ? error : new Error(defaultErrorMessage);

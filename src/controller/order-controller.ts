@@ -1,6 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 
-import getAuthToken from "../auth/get-auth-token";
 import createOrder from "../order/create-order";
 import captureOrder from "../order/capture-order";
 import getOrder from "../order/get-order";
@@ -65,14 +64,13 @@ async function createOrderHandler(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { access_token: accessToken } = await getAuthToken();
   const { cart } = request.body as { cart: CartItem[] };
   const { itemsArray, itemTotal } = getItemsAndTotal(cart);
 
   // Example shipping and tax calculation
   const shippingTotal = 0;
   const taxTotal = roundTwoDecimals(itemTotal * 0.05);
-  const grandTotal = itemTotal + shippingTotal + taxTotal;
+  const grandTotal = roundTwoDecimals(itemTotal + shippingTotal + taxTotal);
 
   const invoiceId = "DEMO-INVNUM-" + Date.now(); // An optional transaction field value, use your existing system/business' invoice ID here or generate one sequentially
 
@@ -125,13 +123,13 @@ async function createOrderHandler(
           // so that it reads according to the action your integration performs on return.
           // In summary: if CONTINUE is set here, your onApprove callback should proceed to your own review step that *requires a user action* before capture.
           // user_action: "CONTINUE",
-        }
-      }
+        },
+      },
     },
     */
-  };
+  }; //as CreateOrderRequestBody; //cast needed for payment_source.paypal with paypal-js@5.1.4
 
-  const { data, httpStatus } = await createOrder(accessToken, orderPayload);
+  const { data, httpStatus } = await createOrder(orderPayload);
 
   reply.code(httpStatus).send(data);
 }
@@ -141,9 +139,8 @@ async function captureOrderHandler(
   reply: FastifyReply
 ) {
   const { orderID } = request.body as { orderID: string };
-  const { access_token: accessToken } = await getAuthToken();
 
-  const { data, httpStatus } = await captureOrder(accessToken, orderID);
+  const { data, httpStatus } = await captureOrder(orderID);
 
   const transaction =
     data?.purchase_units?.[0]?.payments?.captures?.[0] ||
@@ -156,7 +153,8 @@ async function captureOrderHandler(
       `PayPal API order ${orderID}: successful capture`,
       transaction
     );
-    const capturedAmount = transaction?.amount?.value;
+    const capturedAmount = (<any>transaction?.amount)?.value;
+
     // Here you can add code to save the PayPal transaction.id in your records, perhaps calling an asynchronous database writer
     // (Most common use case is for your own record's id to be unique and map to the transaction.invoice_id you provided during creation)
     // Your code should validate the captured amount was as expected before doing anything automated for order fulfillment/delivery
@@ -225,7 +223,8 @@ export type ShippingOption = {
   };
 };
 
-function calcShipping(address: ShippingAddress): String | boolean {
+// Return the shipping cost for an address (can be "0"), or false to reject shipping to that address
+function calcShipping(address: ShippingAddress): string | boolean {
   const prices = shippingCost as {
     [key: string]: { [key: string]: string | boolean };
   };
@@ -280,14 +279,14 @@ async function onShippingChange(
     const grandTotal = Object.entries(pu!.amount!.breakdown!).reduce(
       (partialSum, [bdName, bdValue]) => {
         if (bdName.includes("discount")) {
-          return partialSum - parseFloat(bdValue.value);
+          return partialSum - parseFloat(bdValue.value) * 100;
         } else {
           return partialSum + parseFloat(bdValue.value);
         }
       },
       0
     );
-    pu!.amount!.value = grandTotal.toString();
+    pu!.amount!.value = roundTwoDecimals(grandTotal).toString();
 
     patchOps.push({
       op: "replace",
