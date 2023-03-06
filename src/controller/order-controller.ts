@@ -129,9 +129,16 @@ async function createOrderHandler(
     */
   }; //as CreateOrderRequestBody; //cast needed for payment_source.paypal with paypal-js@5.1.4
 
-  const { data, httpStatus } = await createOrder(orderPayload);
+  const orderResponse = await createOrder(orderPayload);
 
-  reply.code(httpStatus).send(data);
+  if (orderResponse.status === "ok") {
+    request.log.info(orderResponse.data, "order successfully created");
+    // TODO: log error details
+  } else {
+    request.log.error(orderResponse.data, "failed to create order");
+  }
+
+  reply.code(orderResponse.httpStatusCode as number).send(orderResponse.data);
 }
 
 async function captureOrderHandler(
