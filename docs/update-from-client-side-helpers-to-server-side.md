@@ -72,6 +72,10 @@ PayPal is dropping support for client-side only integrations. This means that th
 +                   // Failed capture
 +                });
             },
+            onError: function (err) {
+              // For example, redirect to a specific error page
+              window.location.href = "/your-error-page-here";
+            }
         })
         .render("#paypal-button-container");
     </script>
