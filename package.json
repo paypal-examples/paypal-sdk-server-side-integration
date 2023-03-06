@@ -25,6 +25,7 @@
   "devDependencies": {
     "@types/node": "^18.11.18",
     "nodemon": "^2.0.20",
+    "pino-pretty": "^9.4.0",
     "prettier": "^2.8.3",
     "rimraf": "^4.1.2",
     "ts-node": "^10.9.1",
