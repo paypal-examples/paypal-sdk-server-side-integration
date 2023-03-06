@@ -5,7 +5,7 @@
     "description": "A leafy green plant in pot.",
     "price": "50.75",
     "category": "PHYSICAL_GOODS",
-    "status": "IN_STOCK",
+    "stock": 2,
     "image": "🪴"
   },
   "i5b1g92y": {
@@ -14,7 +14,7 @@
     "description": "A seedling, or a young plant, as a newly sprouted tree.",
     "price": "25.20",
     "category": "PHYSICAL_GOODS",
-    "status": "IN_STOCK",
+    "stock": 10,
     "image": "🌱"
   },
   "xyw5kd7k": {
@@ -23,7 +23,7 @@
     "description": "A cactus, a spiky plant that grows in very dry regions.",
     "price": "-100",
     "category": "PHYSICAL_GOODS",
-    "status": "INVALID",
+    "stock": 100,
     "image": "🌵"
   }
 }

@@ -12,7 +12,7 @@ server.register(router);
 
 server.register(require("@fastify/static"), {
   root: path.join(__dirname, "../", "public"),
-  prefix: "/public/",
+  //  prefix: "/public/",
 });
 
 export default server;

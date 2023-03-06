@@ -1,38 +1,41 @@
 import { fetch } from "undici";
 import config from "../config";
+import getAuthToken from "../auth/get-auth-token";
+
 import type { OrderResponseBody } from "@paypal/paypal-js";
 
 const {
   paypal: { apiBaseUrl },
 } = config;
 
-type getOrderErrorResponse = {
+type GetOrderResponse = {
   [key: string]: unknown;
-  name: string;
-  message: string;
-  debug_id: string;
-};
+  details?: Record<string, string>;
+  name?: string;
+  message?: string;
+  debug_id?: string;
+} & OrderResponseBody;
 
 type HttpErrorResponse = {
   statusCode?: number;
   details?: Record<string, string>;
 } & Error;
 
-export async function getOrder(accessToken: string, orderID: string) {
-  if (!accessToken) {
-    throw new Error("MISSING_ACCESS_TOKEN");
-  }
-
+export default async function getOrder(
+  orderID: string
+): Promise<{ data: OrderResponseBody; httpStatus: number }> {
   if (!orderID) {
     throw new Error("MISSING_ORDER_ID");
   }
+
+  const { access_token: accessToken } = await getAuthToken();
 
   const defaultErrorMessage = "FAILED_TO_PATCH_ORDER";
 
   let response;
   try {
     response = await fetch(`${apiBaseUrl}/v2/checkout/orders/${orderID}`, {
-      method: "get",
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
@@ -40,24 +43,9 @@ export async function getOrder(accessToken: string, orderID: string) {
       },
     });
 
-    const data: OrderResponseBody | getOrderErrorResponse | unknown =
-      await response.json();
+    const data = (await response.json()) as GetOrderResponse;
 
-    if (response.status !== 200 && response.status !== 201) {
-      const errorData = data as getOrderErrorResponse;
-      if (!errorData.name) {
-        throw new Error(defaultErrorMessage);
-      }
-
-      const { name, message, debug_id, details } = errorData;
-      const errorMessage = `${name} - ${message} (debug_id: ${debug_id})`;
-
-      const error: HttpErrorResponse = new Error(errorMessage);
-      error.details = details as Record<string, string>;
-      throw error;
-    }
-
-    return data as OrderResponseBody;
+    return { data, httpStatus: response.status };
   } catch (error) {
     const httpError: HttpErrorResponse =
       error instanceof Error ? error : new Error(defaultErrorMessage);
