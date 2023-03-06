@@ -97,11 +97,11 @@ PayPal is dropping support for client-side only integrations. This means that th
 
 1. CLIENT_SECRET should never be checked into git. We recommend passing this sensitive value to the web server at runtime as an environment variable. It's common to use a .env file that is ignored by git to load sensitive values like this secret.
 Examples:
-* Node.js: https://github.com/motdotla/dotenv
-* PHP: https://github.com/vlucas/phpdotenv
-* Python: https://github.com/theskumar/python-dotenv
-2. The client credentials auth token returned by `/v1/oauth2/token` api endpoint should never be passed to the browser. Keep this value in memory on the server-side and use it as the Authorization header for all other api calls.
-  * Node.js auth token example api call:
+  - Node.js: https://github.com/motdotla/dotenv
+  - PHP: https://github.com/vlucas/phpdotenv
+  - Python: https://github.com/theskumar/python-dotenv
+2. The client credentials auth token returned by `/v1/oauth2/token` api endpoint should never be passed to the browser. Keep this value in memory on the server-side and use it as the Authorization header for all other api calls.  
+Node.js auth token example api call:
 ```
 const encodedClientCredentials = Buffer.from(`${client}:${secret}`).toString("base64");
 
