@@ -11,22 +11,38 @@ const {
   paypal: { apiBaseUrl },
 } = config;
 
-type CreateOrderResponse = {
+type HTTPStatusCodeSuccessResponse = 200 | 201;
+
+type CreateOrderErrorResponse = {
   [key: string]: unknown;
-  details?: Record<string, string>;
-  name?: string;
-  message?: string;
-  debug_id?: string;
-} & OrderResponseBody;
+  details: Record<string, string>;
+  name: string;
+  message: string;
+  debug_id: string;
+};
+
+type CreateOrderSuccessResponse = OrderResponseBody;
 
 type HttpErrorResponse = {
   statusCode?: number;
   details?: Record<string, string>;
 } & Error;
 
+type CreateOrderResponse =
+  | {
+      status: "ok";
+      data: CreateOrderSuccessResponse;
+      httpStatusCode: HTTPStatusCodeSuccessResponse;
+    }
+  | {
+      status: "error";
+      data: CreateOrderErrorResponse;
+      httpStatusCode: Omit<number, HTTPStatusCodeSuccessResponse>;
+    };
+
 export default async function createOrder(
   orderPayload: CreateOrderRequestBody
-): Promise<{ data: CreateOrderResponse; httpStatus: number }> {
+): Promise<CreateOrderResponse> {
   if (!orderPayload) {
     throw new Error("MISSING_PAYLOAD_FOR_CREATE_ORDER");
   }
@@ -49,9 +65,21 @@ export default async function createOrder(
       body: JSON.stringify(orderPayload),
     });
 
-    const data = (await response.json()) as CreateOrderResponse;
+    const data = await response.json();
 
-    return { data, httpStatus: response.status };
+    if (response.ok) {
+      return {
+        status: "ok",
+        data: data as CreateOrderSuccessResponse,
+        httpStatusCode: response.status as HTTPStatusCodeSuccessResponse,
+      };
+    } else {
+      return {
+        status: "error",
+        data: data as CreateOrderErrorResponse,
+        httpStatusCode: response.status,
+      };
+    }
   } catch (error) {
     const httpError: HttpErrorResponse =
       error instanceof Error ? error : new Error(defaultErrorMessage);
