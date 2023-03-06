@@ -39,6 +39,8 @@ PayPal is dropping support for client-side only integrations. This means that th
 +                 // use the "body" param to optionally pass additional order information
 +                 // like product skus and quantities
 +                 body: JSON.stringify({
++                 // for no itemization of goods, send empty cart(cart:[])
++                 // for itemization of goods, send an array of cart 
 +                   cart: [
 +                     {
 +                        sku: "YOUR_PRODUCT_STOCK_KEEPING_UNIT",
@@ -95,13 +97,29 @@ PayPal is dropping support for client-side only integrations. This means that th
 
 1. CLIENT_SECRET should never be checked into git. We recommend passing this sensitive value to the web server at runtime as an environment variable. It's common to use a .env file that is ignored by git to load sensitive values like this secret.
 Examples:
-  * Node.js: `PAYPAL_CLIENT_SECRET=ABC_123_DOE_RAY_ME node server.js` and use `process.env` to read this value.
-  * Python: `PAYPAL_CLIENT_SECRET=ABC_123_DOE_RAY_ME my_cool_application.py` and use `os.environ` to read this value.
+* Node.js: https://github.com/motdotla/dotenv
+* PHP: https://github.com/vlucas/phpdotenv
+* Python: https://github.com/theskumar/python-dotenv
+2. The client credentials auth token returned by `/v1/oauth2/token` api endpoint should never be passed to the browser. Keep this value in memory on the server-side and use it as the Authorization header for all other api calls.
+  * Node.js auth token example api call:
+```
+const encodedClientCredentials = Buffer.from(`${client}:${secret}`).toString("base64");
 
-2. The authorization token returned by `/v1/oauth2/token` api endpoint should never be passed to the browser. Keep this value in memory on the server-side and use it as the Authorization header for all other api calls.
+const response = await fetch(`${apiBaseUrl}/v1/oauth2/token`, {
+    method: "POST",
+    body: "grant_type=client_credentials",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Accept-Language": "en_US",
+      Authorization: `Basic ${encodedClientCredentials}`,
+    });
+    
+const data = await response.json();
+
+// do not expose "data.access_token" to the browser
+```
 
 3. Create API endpoints to wrap the PayPal APIs. These API endpoints should include error handling.
   * for errors, reply with the response body since it contains helpful information about the error (ex: 'INSTRUMENT_DECLINED' error when capturing an order)
   * for errors, reply with the http status code since it provides value for troubleshooting purposes (ex: 4xx errors for bad user input vs 5xx errors for internal failures)
-    
-4. We recommend hosting your API endpoints on the same domain as your website. This way you do not have to setup CORS for the browser fetch() calls. If you need to use a different domain/sub-domain, we recommend setting up CORS to only be able to talk to that domain and no others.
