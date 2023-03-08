@@ -14,9 +14,7 @@ We recommend using server-side code to safely integrate the PayPal Buttons compo
 
 Before: Client-side only integration code snippet V.S. After: Using a Server-side Integration
 
-<Tabs>
-  <Tab label="Full-stack example (HTML)">
-  <CodeBlock className="language-html">{`
+```diff
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -88,83 +86,7 @@ Before: Client-side only integration code snippet V.S. After: Using a Server-sid
     </script>
   </body>
 </html>
-`}</CodeBlock>
-</Tab>
-<Tab label="Full-stack example (node.js)">
-  <CodeBlock className="language-javascript">{`
-// For a fully working example, please see:
-// https://github.com/paypal-examples/docs-examples/tree/main/standard-integration\n
-const { CLIENT_ID, APP_SECRET } = process.env;\n
-// create a new order
-app.post("/api/orders", async (req, res) => {
-  const order = await createOrder();
-  res.json(order);
-});\n
-// capture payment & store order information or fullfill order
-app.post("/api/orders/:orderID/capture", async (req, res) => {
-  const { orderID } = req.params;
-  const captureData = await capturePayment(orderID);
-  // TODO: store payment information such as the transaction ID
-  res.json(captureData);
-});\n
-//////////////////////
-// PayPal API helpers
-//////////////////////\n
-// use the orders api to create an order
-async function createOrder() {
-  const accessToken = await generateAccessToken();
-  const url = \`\${base}/v2/checkout/orders\`;
-  const response = await fetch(url, {
-    method: "post",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: \`Bearer \${accessToken}\`,
-    },
-    body: JSON.stringify({
-      intent: "CAPTURE",
-      purchase_units: [
-        {
-          amount: {
-            currency_code: "USD",
-            value: "100.00",
-          },
-        },
-      ],
-    }),
-  });
-  const data = await response.json();
-  return data;
-}\n
-// use the orders api to capture payment for an order
-async function capturePayment(orderId) {
-  const accessToken = await generateAccessToken();
-  const url = \`\${base}/v2/checkout/orders/\${orderId}/capture\`;
-  const response = await fetch(url, {
-    method: "post",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: \`Bearer \${accessToken}\`,
-    },
-  });
-  const data = await response.json();
-  return data;
-}\n
-// generate an access token using client id and app secret
-async function generateAccessToken() {
-  const auth = Buffer.from(CLIENT_ID + ":" + APP_SECRET).toString("base64")
-  const response = await fetch(\`\${base}/v1/oauth2/token\`, {
-    method: "post",
-    body: "grant_type=client_credentials",
-    headers: {
-      Authorization: \`Basic \${auth}\`,
-    },
-  });
-  const data = await response.json();
-  return data.access_token;
-}
-`}</CodeBlock>
-</Tab>
-</Tabs>
+```
 
 - What is server-side code?
 
