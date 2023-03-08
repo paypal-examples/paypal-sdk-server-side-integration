@@ -1,7 +1,10 @@
 // add a ".env" file to your project to set these environment variables
 import { INTENT } from "@paypal/paypal-js";
 import * as dotenv from "dotenv";
-dotenv.config();
+
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 
 const {
   PAYPAL_ENVIRONMENT_MODE,
