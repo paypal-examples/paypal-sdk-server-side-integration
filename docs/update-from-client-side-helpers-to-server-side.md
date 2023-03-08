@@ -16,7 +16,7 @@ Before: Client-side only integration code snippet V.S. After: Using a Server-sid
 
 <Tabs>
   <Tab label="Full-stack example (HTML)">
-{```diff
+  <CodeBlock className="language-html">{`
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -88,7 +88,7 @@ Before: Client-side only integration code snippet V.S. After: Using a Server-sid
     </script>
   </body>
 </html>
-```}
+`}</CodeBlock>
 </Tab>
 <Tab label="Full-stack example (node.js)">
   <CodeBlock className="language-javascript">{`
