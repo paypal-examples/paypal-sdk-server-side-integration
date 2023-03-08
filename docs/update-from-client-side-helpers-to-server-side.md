@@ -12,8 +12,7 @@ We recommend using server-side code to safely integrate the PayPal Buttons compo
 * Secure Authorization with PayPal's APIs: Use a CLIENT_ID and CLIENT_SECRET to securely consume PayPal's APIs from your server-side code. The CLIENT_SECRET is only known by your server-side code and uniquely identifies your application.
 * Secure Order Creation: Keep sensitive data, such as order amount, on the server to prevent tampering by outside actors.
 
-Before: Client-side only integration code snippet V.S. After: Using a Server-side Integration
-
+### Creates an order
 ```diff
 <!DOCTYPE html>
 <html lang="en">
@@ -56,6 +55,29 @@ Before: Client-side only integration code snippet V.S. After: Using a Server-sid
 +                 .then((order) => order.id)
 +               );
             },
+            onError: function (err) {
+              // For example, redirect to a specific error page
+              window.location.href = "/your-error-page-here";
+            }
+        })
+        .render("#paypal-button-container");
+    </script>
+  </body>
+</html>
+```
+### Captures payment for an order
+```diff
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+  <body>
+    <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID&currency=USD"></script>
+    <div id="paypal-button-container"></div>
+    <script>
+      window.paypal
+        .Buttons({
             // Finalize the transaction
             onApprove: function (data, actions) {
 -             return actions.order
@@ -77,6 +99,31 @@ Before: Client-side only integration code snippet V.S. After: Using a Server-sid
 +                   // Failed capture
 +                });
             },
+            onError: function (err) {
+              // For example, redirect to a specific error page
+              window.location.href = "/your-error-page-here";
+            }
+        })
+        .render("#paypal-button-container");
+    </script>
+  </body>
+</html>
+```
+### Buyer checkout error
+If an error prevents buyer checkout, alert the user that an error has occurred with the buttons using the onError callback:
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+  <body>
+    <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID&currency=USD"></script>
+    <div id="paypal-button-container"></div>
+    <script>
+      window.paypal
+        .Buttons({
+          // Set up the order
             onError: function (err) {
               // For example, redirect to a specific error page
               window.location.href = "/your-error-page-here";
