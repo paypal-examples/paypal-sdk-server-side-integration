@@ -151,7 +151,7 @@ Examples:
   - PHP: https://github.com/vlucas/phpdotenv
   - Python: https://github.com/theskumar/python-dotenv
 2. The client credentials auth token returned by `/v1/oauth2/token` api endpoint should never be passed to the browser. Keep this value in memory on the server-side and use it as the Authorization header for all other api calls.  
-Node.js auth token example api call:
+Here's an example API call in Node.js that uses the client credentials auth token as the Authorization header for all other API calls:
 ```
 const encodedClientCredentials = Buffer.from(`${client}:${secret}`).toString("base64");
 
@@ -171,5 +171,5 @@ const data = await response.json();
 ```
 
 3. Create API endpoints to wrap the PayPal APIs. These API endpoints should include error handling.
-  * for errors, reply with the response body since it contains helpful information about the error (ex: 'INSTRUMENT_DECLINED' error when capturing an order)
-  * for errors, reply with the http status code since it provides value for troubleshooting purposes (ex: 4xx errors for bad user input vs 5xx errors for internal failures)
+  * for errors, include the response body in the API's error response to provide helpful information about the error. For example, when capturing an order, an 'INSTRUMENT_DECLINED' error might be returned in the response body.
+  * for errors, include the HTTP status code in the API's error response to provide value for troubleshooting purposes. For example, 4xx errors might indicate bad user input, while 5xx errors might indicate internal failures.
