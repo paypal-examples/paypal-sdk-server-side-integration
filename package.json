@@ -10,7 +10,6 @@
     "test": "tap --ts --no-check-coverage",
     "coverage": "npm test -- --coverage-report=html",
     "build": "rimraf dist && tsc",
-    "prestart": "npm run build",
     "start": "NODE_ENV=production node dist/index.js"
   },
   "keywords": [],
