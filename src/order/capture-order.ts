@@ -1,7 +1,7 @@
 import { fetch } from "undici";
+import { randomUUID } from "crypto";
 import config from "../config";
 import getAuthToken from "../auth/get-auth-token";
-import uuid from "@braintree/uuid";
 
 import type { OrderResponseBody } from "@paypal/paypal-js";
 
@@ -26,7 +26,7 @@ type HttpErrorResponse = {
 export default async function captureOrder(
   orderID: string
 ): Promise<{ data: CaptureOrderResponse; httpStatus: number }> {
-  const uniqueRequestId = uuid();
+  const uniqueRequestId = randomUUID();
   // Call the API
   let { data, httpStatus } = await captureOrderAPI(orderID, uniqueRequestId);
 
