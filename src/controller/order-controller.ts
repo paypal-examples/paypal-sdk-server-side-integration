@@ -3,7 +3,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import createOrder from "../order/create-order";
 import captureOrder from "../order/capture-order";
 import getOrder from "../order/get-order";
-import patchOrder from "../order/patch-order";
+import patchOrder, { type PatchOrderResponse } from "../order/patch-order";
 import products from "../data/products.json";
 import shippingCost from "../data/shipping-cost.json";
 import config from "../config";
@@ -248,7 +248,7 @@ function calcShipping(address: ShippingAddress): string | boolean {
 async function onShippingChange(
   orderID: string,
   shippingAddress: ShippingAddress
-): Promise<{ data: any; httpStatus: number }> {
+): Promise<PatchOrderResponse> {
   if (!orderID) {
     throw new Error("MISSING_ORDER_ID_FOR_PATCH_ORDER");
   }
@@ -310,8 +310,18 @@ async function patchOrderHandler(request: FastifyRequest, reply: FastifyReply) {
     orderID: string;
     shippingAddress: ShippingAddress;
   };
-  const { data, httpStatus } = await onShippingChange(orderID, shippingAddress);
-  reply.code(httpStatus).send(data);
+
+  const patchOrderResponse = await onShippingChange(orderID, shippingAddress);
+
+  if (patchOrderResponse.status === "ok") {
+    request.log.info("order successfully patched");
+  } else {
+    request.log.error(patchOrderResponse.data, "failed to patch order");
+  }
+
+  reply
+    .code(patchOrderResponse.httpStatusCode as number)
+    .send(patchOrderResponse.data);
 }
 
 export async function patchOrderController(fastify: FastifyInstance) {
