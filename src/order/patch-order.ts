@@ -6,12 +6,14 @@ const {
   paypal: { apiBaseUrl },
 } = config;
 
-type PatchOrderResponse = {
+type HTTPStatusCodeSuccessResponse = 204;
+
+type PatchOrderErrorResponse = {
   [key: string]: unknown;
-  details?: Record<string, string>;
-  name?: string;
-  message?: string;
-  debug_id?: string;
+  details: Record<string, string>;
+  name: string;
+  message: string;
+  debug_id: string;
 };
 
 type HttpErrorResponse = {
@@ -19,11 +21,23 @@ type HttpErrorResponse = {
   details?: Record<string, string>;
 } & Error;
 
+export type PatchOrderResponse =
+  | {
+      status: "ok";
+      data: null;
+      httpStatusCode: HTTPStatusCodeSuccessResponse;
+    }
+  | {
+      status: "error";
+      data: PatchOrderErrorResponse;
+      httpStatusCode: Omit<number, HTTPStatusCodeSuccessResponse>;
+    };
+
 export default async function patchOrder(
   orderID: string,
   patchPayload: any
-): Promise<{ data: any; httpStatus: number }> {
-  if (!patchPayload) {
+): Promise<PatchOrderResponse> {
+  if (!orderID) {
     throw new Error("MISSING_ORDER_ID_FOR_PATCH_ORDER");
   }
 
@@ -43,10 +57,22 @@ export default async function patchOrder(
       body: JSON.stringify(patchPayload),
     });
 
-    const data = (await response.json()) as PatchOrderResponse;
+    if (response.status === 204) {
+      // A successful patch API response is an HTTP 204 No Content, with no data
+      return {
+        status: "ok",
+        data: null,
+        httpStatusCode: response.status as HTTPStatusCodeSuccessResponse,
+      };
+    } else {
+      const data = await response.json();
 
-    // A successful patch API response is an HTTP 204 No Content, with no data
-    return { data, httpStatus: response.status };
+      return {
+        status: "error",
+        data: data as PatchOrderErrorResponse,
+        httpStatusCode: response.status,
+      };
+    }
   } catch (error) {
     const httpError: HttpErrorResponse =
       error instanceof Error ? error : new Error(defaultErrorMessage);
