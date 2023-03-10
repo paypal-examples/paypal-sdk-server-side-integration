@@ -132,8 +132,8 @@ async function createOrderHandler(
   const orderResponse = await createOrder(orderPayload);
 
   if (orderResponse.status === "ok") {
-    request.log.info(orderResponse.data, "order successfully created");
-    // TODO: log error details
+    const { id, status } = orderResponse.data;
+    request.log.info({ id, status }, "order successfully created");
   } else {
     request.log.error(orderResponse.data, "failed to create order");
   }
