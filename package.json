@@ -9,8 +9,9 @@
     "format": "prettier --write .",
     "test": "tap --ts --no-check-coverage",
     "coverage": "npm test -- --coverage-report=html",
+    "coverage:ci": "npm test -- --coverage-report=html --no-browser --no-check-coverage -R terse",
     "build": "rimraf dist && tsc",
-    "validate": "npm run check-node-version && prettier --check . && tsc --noEmit && npm test -- --coverage-report=text-lcov",
+    "validate": "npm run check-node-version && prettier --check . && tsc --noEmit && npm run coverage:ci",
     "prestart": "npm run build",
     "start": "NODE_ENV=production node dist/index.js"
   },
