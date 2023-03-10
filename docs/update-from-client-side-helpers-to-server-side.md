@@ -4,39 +4,49 @@ We recommend using server-side code to safely integrate the PayPal Buttons compo
 
 ## Know before you code
 * [How to Setup a Developer Account](https://www.youtube.com/watch?v=O_9G722SpXQ&t=72s)
-* [How to Retrieve an API Access Token (Node.js)](https://www.youtube.com/watch?v=HOkkbGSxmp4&t=113s)
-* [How to Integrate PayPal Standard Checkout](https://www.youtube.com/watch?v=MBfJEUGNNs0)
 
-## Benefits of using a Server-side Integration
+## 1. What do I need to change with my createOrder() callback?
 
-* Secure Authorization with PayPal's APIs: Use a CLIENT_ID and CLIENT_SECRET to securely consume PayPal's APIs from your server-side code. The CLIENT_SECRET is only known by your server-side code and uniquely identifies your application.
-* Secure Order Creation: Keep sensitive data, such as order amount, on the server to prevent tampering by outside actors.
+#### Current state of client-side integration behavior
 
-### Creates an order
+With the client-side integration pattern, the SDK code would take care of calling the v2 Orders API on your behalf. It would also handle the authorization for you.
+
+```js
+createOrder(data, actions) {
+  return actions.order.create({
+    purchase_units: [
+      {
+          amount: {
+            value: "88.44",
+          },
+      }],
+  });
+}
+```
+
+#### Changes needed to migrate to using server-side integration pattern
+
+To simplify the integration of your e-commerce website with the PayPal v2 Orders API, you can move the order creation process to your server-side. The following steps are required to create an order on the server-side:
+
+1. Obtain an access token for authorization by referring to this video tutorial (https://www.youtube.com/watch?v=HOkkbGSxmp4&t=113s). To securely store your credentials in your application code, we recommend using a .env file. You can find the relevant libraries for Node.js, PHP, and Python at the following links:
+  - Node.js: https://github.com/motdotla/dotenv
+  - PHP: https://github.com/vlucas/phpdotenv
+  - Python: https://github.com/theskumar/python-dotenv
+2. Pass any relevant information from the client-side code to your server-side API endpoint. For example, you can pass product IDs and quantities from the browser to your server to define the items required for order creation.
+3. Call the Orders API from your server-side code and return the order ID in your createOrder() callback. Make it clear that you should return the EC-Token when resolving the promise.
+
 ```diff
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    </head>
-  <body>
-    <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID&currency=USD"></script>
-    <div id="paypal-button-container"></div>
-    <script>
-      window.paypal
-        .Buttons({
-          // Set up the order
-          createOrder: function (data, actions) {
--           return actions.order.create({
--              purchase_units: [
+    createOrder: function (data, actions) {
+-       return actions.order.create({
+-           purchase_units: [
 -                {
 -                   amount: {
 -                      value: "88.44",
 -                    },
 -                 }],
--                });
-+             return (
-+               fetch("/your-server/api/create-paypal-order", {
+-         });
++         return (
++             fetch("/your-server/api/create-paypal-order", {
 +                 method: "POST",
 +                 // use the "body" param to optionally pass additional order information
 +                 // like product skus and quantities
@@ -49,91 +59,91 @@ We recommend using server-side code to safely integrate the PayPal Buttons compo
 +                        quantity: "YOUR_PRODUCT_QUANTITY",
 +                      }],
 +                   }),
-+                 })
-+                 .then((response) => response.json())
-+                 // return the PayPal Order ID
-+                 .then((order) => order.id)
-+               );
-            },
-            onError: function (err) {
-              // For example, redirect to a specific error page
-              window.location.href = "/your-error-page-here";
-            }
-        })
-        .render("#paypal-button-container");
-    </script>
-  </body>
-</html>
++               })
++               .then((response) => response.json())
++               // return the PayPal Order ID
++               .then((order) => order.id)
++             );
+    }
 ```
-### Captures payment for an order
+
+## 2. What do I need to change with my onApprove() callback?
+
+#### Current state of client-side integration behavior
+
+```js
+onApprove(data, actions) {
+    return actions.order.capture()
+        .then(function (orderData) {
+          // Successful capture!
+        })
+        .catch(function (err) {
+          // Failed capture
+    });
+}
+```
+
+##### We pass the OrderID for you to the helper
+On the client-side, the SDK provides an actions.orders.capture() helper for capturing the order, which takes care of passing the Order ID to the v2 Orders API capture endpoint and handling the authorization.
+
+##### We automatically restart the flow for INSTRUMENT_DECLINED errors
+
+
+#### Changes needed to migrate to using server-side integration pattern
+
+1. Pass the order ID to your server.
+
+2. Update your client-side code to call actions.restart() when there's an INSTRUMENT_DECLINED error.
+
+use code snippet from here: https://developer.paypal.com/demo/checkout/#/pattern/server
+
 ```diff
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    </head>
-  <body>
-    <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID&currency=USD"></script>
-    <div id="paypal-button-container"></div>
-    <script>
-      window.paypal
-        .Buttons({
-            // Finalize the transaction
-            onApprove: function (data, actions) {
--             return actions.order
--               .capture()
--               .then(function (orderData) {
--                  // Successful capture!
--                })
--                .catch(function (err) {
--                   // Failed capture
--                });
-+                return fetch("/my-server/patch-paypal-order", {
-+                  method: "POST",
-+                })
-+                .then((response) => response.json())
-+                .then(function (orderData) {
-+                   // Successful capture!
-+                })
-+                .catch(function (err) {
-+                   // Failed capture
-+                });
-            },
-            onError: function (err) {
-              // For example, redirect to a specific error page
-              window.location.href = "/your-error-page-here";
-            }
-        })
-        .render("#paypal-button-container");
-    </script>
-  </body>
-</html>
+    onApprove: function (data, actions) {
+-       return actions.order.capture()
+-        .then(function (orderData) {
+-           // Successful capture!
+-        })
+-        .catch(function (err) {
+-           // Failed capture
+-         });
++        return fetch("/my-server/patch-paypal-order", {
++            method: "POST",
++            body: JSON.stringify({
++              orderID: data.orderID
++            })    
++         })
++         .then((response) => response.json())
++         .then(function (orderData) {
++             // Successful capture!
++         })
++         .catch(function (err) {
++             // Failed capture
++         });
+    }
 ```
-### Buyer checkout error
-If an error prevents buyer checkout, alert the user that an error has occurred with the buttons using the onError callback:
-```html
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    </head>
-  <body>
-    <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID&currency=USD"></script>
-    <div id="paypal-button-container"></div>
-    <script>
-      window.paypal
-        .Buttons({
-          // Set up the order
-            onError: function (err) {
-              // For example, redirect to a specific error page
-              window.location.href = "/your-error-page-here";
-            }
-        })
-        .render("#paypal-button-container");
-    </script>
-  </body>
-</html>
+
+## The following diagram shows the process of creating an order:
+```mermaid
+sequenceDiagram
+    actor Buyer
+    participant M(HTML) as Merchant HTML Page
+    participant M(S) as Merchant Server
+    participant PP(SDK) as Paypal JS SDK
+    participant PP(ORDER) as Paypal Orders API
+    M(HTML)->>PP(SDK): Initialize PayPal Button
+    PP(SDK)->>M(HTML): Render PayPal Button
+    Buyer->>PP(SDK): Click PayPal Button (start checkout)
+    PP(SDK)->>M(HTML): createOrder() callback
+    M(HTML)->>M(S): Create Order
+    M(S)->>PP(ORDER): POST v2/orders
+    PP(ORDER)->>M(S): Order Created
+    M(S)->>M(HTML): Return order ID
 ```
+
+## Benefits of using a Server-side Integration
+
+* Secure Authorization with PayPal's APIs: Use a CLIENT_ID and CLIENT_SECRET to securely consume PayPal's APIs from your server-side code. The CLIENT_SECRET is only known by your server-side code and uniquely identifies your application.
+* Secure Order Creation: Keep sensitive data, such as order amount, on the server to prevent tampering by outside actors.
 
 - What is server-side code?
 
@@ -146,10 +156,6 @@ If an error prevents buyer checkout, alert the user that an error has occurred w
 ## Best Practices for JS SDK Server-Side Integrations:
 
 1. CLIENT_SECRET should never be checked into git. We recommend passing this sensitive value to the web server at runtime as an environment variable. It's common to use a .env file that is ignored by git to load sensitive values like this secret.
-Examples:
-  - Node.js: https://github.com/motdotla/dotenv
-  - PHP: https://github.com/vlucas/phpdotenv
-  - Python: https://github.com/theskumar/python-dotenv
 2. The client credentials auth token returned by `/v1/oauth2/token` api endpoint should never be passed to the browser. Keep this value in memory on the server-side and use it as the Authorization header for all other api calls.  
 Here's an example API call in Node.js that uses the client credentials auth token as the Authorization header for all other API calls:
 ```
