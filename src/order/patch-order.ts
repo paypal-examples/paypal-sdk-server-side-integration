@@ -1,15 +1,16 @@
 import { fetch } from "undici";
 import config from "../config";
-import { getOrder } from "./get-order";
-import type { ShippingAddress } from "@paypal/paypal-js";
-import shippingCost from "../data/shipping-cost.json";
+import getAuthToken from "../auth/get-auth-token";
 
 const {
   paypal: { apiBaseUrl },
 } = config;
 
+type HTTPStatusCodeSuccessResponse = 204;
+
 type PatchOrderErrorResponse = {
   [key: string]: unknown;
+  details: Record<string, string>;
   name: string;
   message: string;
   debug_id: string;
@@ -20,90 +21,58 @@ type HttpErrorResponse = {
   details?: Record<string, string>;
 } & Error;
 
-export async function onShippingChange(
-  accessToken: string,
-  patchOrderPayload: {
-    orderID: string;
-    shippingAddress: ShippingAddress;
-  }
-) {
-  if (!accessToken) {
-    throw new Error("MISSING_ACCESS_TOKEN");
-  }
+export type PatchOrderResponse =
+  | {
+      status: "ok";
+      data: null;
+      httpStatusCode: HTTPStatusCodeSuccessResponse;
+    }
+  | {
+      status: "error";
+      data: PatchOrderErrorResponse;
+      httpStatusCode: Omit<number, HTTPStatusCodeSuccessResponse>;
+    };
 
-  if (!patchOrderPayload) {
+export default async function patchOrder(
+  orderID: string,
+  patchPayload: any
+): Promise<PatchOrderResponse> {
+  if (!orderID) {
     throw new Error("MISSING_ORDER_ID_FOR_PATCH_ORDER");
   }
+
+  const { access_token: accessToken } = await getAuthToken();
 
   const defaultErrorMessage = "FAILED_TO_PATCH_ORDER";
 
   let response;
   try {
-    //get order details
-    const orderDetails = await getOrder(accessToken, patchOrderPayload.orderID);
-    const state = patchOrderPayload.shippingAddress
-      .state as keyof typeof shippingCost;
+    response = await fetch(`${apiBaseUrl}/v2/checkout/orders/${orderID}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "Accept-Language": "en_US",
+      },
+      body: JSON.stringify(patchPayload),
+    });
 
-    let breakdownShipping = 0;
-    if (shippingCost[state] === undefined) {
-      breakdownShipping = parseFloat(shippingCost.DEFAULT.price);
-    } else {
-      breakdownShipping = parseFloat(shippingCost[state].price);
-    }
-    const amountBreakdown =
-      orderDetails?.purchase_units[0]?.amount?.breakdown ?? {};
-    // total amount should equal item_total + tax_total + shipping + handling + insurance - shipping_discount - discount.
-    const totalNewAmount =
-      parseFloat(amountBreakdown?.item_total?.value ?? "0") +
-      parseFloat(amountBreakdown?.tax_total?.value ?? "0") +
-      breakdownShipping +
-      parseFloat(amountBreakdown?.handling?.value ?? "0") +
-      parseFloat(amountBreakdown?.insurance?.value ?? "0") -
-      parseFloat(amountBreakdown?.shipping_discount?.value ?? "0") -
-      parseFloat(amountBreakdown?.discount?.value ?? "0");
-
-    orderDetails.purchase_units[0].amount.value = totalNewAmount.toString();
-    orderDetails.purchase_units[0].amount.currency_code = "USD";
-    orderDetails.purchase_units[0].amount.breakdown!.shipping!.value! =
-      breakdownShipping.toString();
-
-    response = await fetch(
-      `${apiBaseUrl}/v2/checkout/orders/${patchOrderPayload.orderID}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          "Accept-Language": "en_US",
-        },
-        body: JSON.stringify([
-          {
-            op: "replace",
-            path: "/purchase_units/@reference_id=='default'/amount",
-            value: orderDetails.purchase_units[0].amount,
-          },
-        ]),
-      }
-    );
-
-    //A successful request returns the HTTP 204 No Content status code with an empty object
     if (response.status === 204) {
-      return {};
+      // A successful patch API response is an HTTP 204 No Content, with no data
+      return {
+        status: "ok",
+        data: null,
+        httpStatusCode: response.status as HTTPStatusCodeSuccessResponse,
+      };
+    } else {
+      const data = await response.json();
+
+      return {
+        status: "error",
+        data: data as PatchOrderErrorResponse,
+        httpStatusCode: response.status,
+      };
     }
-
-    const data = await response.json();
-
-    const errorData = data as PatchOrderErrorResponse;
-    if (!errorData.name) {
-      throw new Error(defaultErrorMessage);
-    }
-
-    const { name, message, debug_id, details } = errorData;
-    const errorMessage = `${name} - ${message} (debug_id: ${debug_id})`;
-
-    const error: HttpErrorResponse = new Error(errorMessage);
-    error.details = details as Record<string, string>;
-    throw error;
   } catch (error) {
     const httpError: HttpErrorResponse =
       error instanceof Error ? error : new Error(defaultErrorMessage);
