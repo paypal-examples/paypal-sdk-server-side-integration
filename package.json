@@ -2,7 +2,7 @@
   "name": "paypal-sdk-server-side-integration",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
     "check-node-version": "node scripts/check-node-version.js",
     "dev": "npm run check-node-version && nodemon --watch './**/*.ts' --watch '.env' --watch './**/data/*.json' --exec 'ts-node' src/server.ts",
@@ -12,7 +12,7 @@
     "coverage:ci": "npm test -- --coverage-report=html --no-browser --no-check-coverage -R terse",
     "build": "rimraf dist && tsc",
     "validate": "npm run check-node-version && prettier --check . && tsc --noEmit && npm run coverage:ci",
-    "start": "NODE_ENV=production node dist/index.js"
+    "start": "NODE_ENV=production node dist/server.js"
   },
   "keywords": [],
   "author": "",
