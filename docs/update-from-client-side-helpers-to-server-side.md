@@ -16,9 +16,9 @@ Specifically:
 
 1. Setup a server-side integration with the [PayPal REST API's](https://developer.paypal.com/api/rest/).
 
-1. `createOrder` JavaScript callback must be changed to use your server-side to create and return an Order ID using the PayPal backend API's.
+1. `createOrder` JavaScript callback must be changed to use your server-side to create and return an Order ID using the PayPal REST API's.
 
-1. `onApprove` JavaScript callback must be changed to use your server-side to complete transactions using the PayPal backend API's.
+1. `onApprove` JavaScript callback must be changed to use your server-side to complete transactions using the PayPal REST API's.
 
 <br/><br/>
 
@@ -30,15 +30,15 @@ PayPal REST API's follow a common integration approach used by other RESTful API
 
 1. Create a PayPal REST application and obtain a client + secret
 
-1. Use the client/secret combination to obtain an oAuth access token
+1. Use the client + secret combination to obtain an OAuth access token
 
-1. Use the oAuth access token to directly make REST calls to the PayPal Order API's -- which you will need for this document.
+1. Use the OAuth access token to directly make REST calls to the PayPal Order API's -- which you will need for this document.
 
 <br/><br/>
 
 # 2. Change your `createOrder()` callback
 
-Your current integration may likely be using the client-side order create functions.  You will need to replace this code to call your server side instead.  Examples on before and after are below.
+Your current integration may likely be using the client-side order create functions.  You will need to replace this code to call your server instead. Before-and-after examples are below.
 
 ## Current state of client-side integration behavior
 
@@ -69,11 +69,11 @@ To simplify the integration of your e-commerce website with the PayPal v2 Orders
 ```js
 createOrder: function (data, actions) {
   return (
-      // 1. send your cart info to your server side to create a PayPal Order.
+      // send your cart info to your server side to create a PayPal Order.
       fetch("/your-server/api/create-paypal-order", {
           method: "POST",
           body: JSON.stringify({
-          //  EXAMPLE DATA ONLY 
+          // BELOW IS EXAMPLE DATA FOR DEMONSTRATION ONLY
             cart: [
               {
                 sku: "YOUR_PRODUCT_STOCK_KEEPING_UNIT",
@@ -82,7 +82,7 @@ createOrder: function (data, actions) {
             }),
         })
         .then((response) => response.json())
-        // 2. return the PayPal Order ID that you received from the PayPal backend
+        // return the PayPal Order ID that you received from the PayPal backend
         .then((order) => order.id)
       );
 }
@@ -137,13 +137,13 @@ On the client-side, the SDK provides an actions.orders.capture() helper for capt
 
 2. Update your client-side code to call actions.restart() when there's an INSTRUMENT_DECLINED error.
 
-use code snippet from here: https://developer.paypal.com/demo/checkout/#/pattern/server
+use code snippet from our [demo page]: (https://developer.paypal.com/demo/checkout/#/pattern/server)
 
 ## New state of client + server integration behavior
 
 ```js
 onApprove: function (data, actions) {
-    // 1. Pass the PayPal Order ID to your server side where you will capture it
+    // Pass the PayPal Order ID to your server side where you will capture it
     return fetch("/my-server/patch-paypal-order", {
         method: "POST",
         body: JSON.stringify({
@@ -222,8 +222,8 @@ const data = await response.json();
 
 - What is server-side code?
 
-  Server-side code runs securely on a web server and is typically used to communicate with APIs and Databases. Here's a list of common server-side languages used to make websites: Node.js, PHP, ASP.NET, Ruby, Java.
+  Server-side code runs securely on a web server and is typically used to communicate with APIs and Databases. Common server-side languages used to make websites include Node.js, PHP, ASP.NET, Ruby, and Java.
 
 - What should I do if I do not have the ability to run server-side code?
 
-  We recommend using one of PayPal's partners to host your website like Wix, GoDaddy, Shopify, and Big Commerce.
+  We recommend using one of PayPal's partners to host your website like Wix, GoDaddy, Shopify, and BigCommerce.
