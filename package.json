@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "check-node-version": "node scripts/check-node-version.js",
-    "dev": "npm run check-node-version && nodemon --watch './**/*.ts' --watch '.env' --watch './**/data/*.json' --exec 'ts-node' src/index.ts",
+    "dev": "npm run check-node-version && nodemon --watch './**/*.ts' --watch '.env' --watch './**/data/*.json' --exec 'ts-node' src/server.ts",
     "format": "prettier --write .",
     "test": "tap --ts --no-check-coverage",
     "coverage": "npm test -- --coverage-report=html",
