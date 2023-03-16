@@ -3,7 +3,7 @@ import { test, mock } from "tap";
 test("should throw an error when clientID is undefined", async (t) => {
   t.plan(1);
 
-  const { default: getAuthToken } = mock("../auth/get-auth-token", {
+  const { default: getAuthToken } = mock("./get-auth-token", {
     "../config": {
       paypal: {
         clientID: null,
@@ -22,7 +22,7 @@ test("should throw an error when clientID is undefined", async (t) => {
 test("should throw an error when clientSecret is undefined", async (t) => {
   t.plan(1);
 
-  const { default: getAuthToken } = mock("../auth/get-auth-token", {
+  const { default: getAuthToken } = mock("./get-auth-token", {
     "../config": {
       paypal: {
         clientID: "mockClientIDValue",
@@ -39,8 +39,6 @@ test("should throw an error when clientSecret is undefined", async (t) => {
 });
 
 test("should retrieve access token from cache", async (t) => {
-  t.plan(1);
-
   class CacheMock {
     get(credentials: string) {
       if (credentials === "mockClientIDValue:mockClientSecretValue") {
@@ -51,7 +49,7 @@ test("should retrieve access token from cache", async (t) => {
     }
   }
 
-  const { default: getAuthToken } = mock("../auth/get-auth-token", {
+  const { default: getAuthToken } = mock("./get-auth-token", {
     "./cache": CacheMock,
   });
 
@@ -63,9 +61,7 @@ test("should retrieve access token from cache", async (t) => {
 });
 
 test("should retrieve access token from /v1/oauth2/token api ", async (t) => {
-  t.plan(1);
-
-  const { default: getAuthToken } = mock("../auth/get-auth-token", {
+  const { default: getAuthToken } = mock("./get-auth-token", {
     undici: {
       fetch() {
         return {
@@ -86,7 +82,7 @@ test("should retrieve access token from /v1/oauth2/token api ", async (t) => {
 test("should throw an error when /v1/oauth2/token api call fails with known error", async (t) => {
   t.plan(1);
 
-  const { default: getAuthToken } = mock("../auth/get-auth-token", {
+  const { default: getAuthToken } = mock("./get-auth-token", {
     undici: {
       fetch() {
         return {
@@ -113,7 +109,7 @@ test("should throw an error when /v1/oauth2/token api call fails with known erro
 test("should throw a default error when /v1/oauth2/token api call fails with unknown error", async (t) => {
   t.plan(1);
 
-  const { default: getAuthToken } = mock("../auth/get-auth-token", {
+  const { default: getAuthToken } = mock("./get-auth-token", {
     undici: {
       fetch() {
         return {
