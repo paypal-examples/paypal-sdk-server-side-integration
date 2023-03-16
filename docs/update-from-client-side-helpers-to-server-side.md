@@ -18,7 +18,7 @@ Specifically:
 
 1. `createOrder` JavaScript callback must be changed to use your server-side to create and return an Order ID using the PayPal backend API's.
 
-1. `onApprove` JavaScript callback must be changed to use your server-side to complete transactions using the PayPal backend API's (NOTE:  this is only for delayed capture).
+1. `onApprove` JavaScript callback must be changed to use your server-side to complete transactions using the PayPal backend API's.
 
 <br/><br/>
 
