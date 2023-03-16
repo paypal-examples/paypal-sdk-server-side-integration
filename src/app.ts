@@ -1,18 +1,16 @@
-import fastify from "fastify";
+import fastify, { FastifyServerOptions } from "fastify";
 import path from "path";
 
 import router from "./router";
 
-const server = fastify({
-  // Logger used for production only
-  logger: process.env.NODE_ENV !== "development",
-});
+export default function buildApp(options: FastifyServerOptions = {}) {
+  const server = fastify(options);
 
-server.register(router);
+  server.register(router);
 
-server.register(require("@fastify/static"), {
-  root: path.join(__dirname, "../", "public"),
-  prefix: "/public/",
-});
+  server.register(require("@fastify/static"), {
+    root: path.join(__dirname, "../", "public"),
+  });
 
-export default server;
+  return server;
+}

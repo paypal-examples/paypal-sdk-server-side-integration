@@ -2,13 +2,17 @@
   "name": "paypal-sdk-server-side-integration",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
     "check-node-version": "node scripts/check-node-version.js",
-    "dev": "npm run check-node-version && nodemon --watch './**/*.ts' --exec 'ts-node' src/index.ts",
+    "dev": "npm run check-node-version && nodemon --watch './**/*.ts' --watch '.env' --watch './**/data/*.json' --exec 'ts-node' src/server.ts",
     "format": "prettier --write .",
+    "test": "tap --ts --no-check-coverage",
+    "coverage": "npm test -- --coverage-report=html",
+    "coverage:ci": "npm test -- --coverage-report=html --no-browser --no-check-coverage -R terse",
     "build": "rimraf dist && tsc",
-    "start": "node dist/index.js"
+    "validate": "npm run check-node-version && prettier --check . && tsc --noEmit && npm run coverage:ci",
+    "start": "NODE_ENV=production node dist/server.js"
   },
   "keywords": [],
   "author": "",
@@ -24,9 +28,12 @@
   },
   "devDependencies": {
     "@types/node": "^18.11.18",
+    "@types/tap": "^15.0.8",
     "nodemon": "^2.0.20",
+    "pino-pretty": "^9.4.0",
     "prettier": "^2.8.3",
     "rimraf": "^4.1.2",
+    "tap": "^16.3.4",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.1.2",
     "typescript": "^4.9.5"

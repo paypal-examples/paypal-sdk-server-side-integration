@@ -1,21 +1,17 @@
 import { fetch } from "undici";
 import config from "../config";
+import getAuthToken from "../auth/get-auth-token";
 
-import type { CreateOrderRequestBody } from "@paypal/paypal-js";
+import type {
+  CreateOrderRequestBody,
+  OrderResponseBody,
+} from "@paypal/paypal-js";
 
 const {
   paypal: { apiBaseUrl },
 } = config;
 
-type CreateOrderResponse = {
-  id: string;
-  status: string;
-  links: {
-    href: string;
-    rel: string;
-    method: string;
-  }[];
-};
+type HTTPStatusCodeSuccessResponse = 200 | 201;
 
 type CreateOrderErrorResponse = {
   [key: string]: unknown;
@@ -25,55 +21,65 @@ type CreateOrderErrorResponse = {
   debug_id: string;
 };
 
+type CreateOrderSuccessResponse = OrderResponseBody;
+
 type HttpErrorResponse = {
   statusCode?: number;
   details?: Record<string, string>;
 } & Error;
 
+type CreateOrderResponse =
+  | {
+      status: "ok";
+      data: CreateOrderSuccessResponse;
+      httpStatusCode: HTTPStatusCodeSuccessResponse;
+    }
+  | {
+      status: "error";
+      data: CreateOrderErrorResponse;
+      httpStatusCode: Omit<number, HTTPStatusCodeSuccessResponse>;
+    };
+
 export default async function createOrder(
-  accessToken: string,
   orderPayload: CreateOrderRequestBody
 ): Promise<CreateOrderResponse> {
-  if (!accessToken) {
-    throw new Error("MISSING_ACCESS_TOKEN");
-  }
-
   if (!orderPayload) {
     throw new Error("MISSING_PAYLOAD_FOR_CREATE_ORDER");
   }
+
+  const { access_token: accessToken } = await getAuthToken();
 
   const defaultErrorMessage = "FAILED_TO_CREATE_ORDER";
 
   let response;
   try {
+    const SET_BUT_EMPTY = " "; // a single space
     response = await fetch(`${apiBaseUrl}/v2/checkout/orders`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
         "Accept-Language": "en_US",
+        "PayPal-Request-Id": SET_BUT_EMPTY, // API requires this header if payment_source.paypal.experience_context is in payload, however it's not applicable to this use case so SET_BUT_EMPTY
       },
       body: JSON.stringify(orderPayload),
     });
 
     const data = await response.json();
 
-    if (response.status !== 200 && response.status !== 201) {
-      const errorData = data as CreateOrderErrorResponse;
-
-      if (!errorData.name) {
-        throw new Error(defaultErrorMessage);
-      }
-
-      const { name, message, debug_id, details } = errorData;
-      const errorMessage = `${name} - ${message} (debug_id: ${debug_id})`;
-
-      const error: HttpErrorResponse = new Error(errorMessage);
-      error.details = details;
-      throw error;
+    if (response.ok) {
+      return {
+        status: "ok",
+        data: data as CreateOrderSuccessResponse,
+        httpStatusCode: response.status as HTTPStatusCodeSuccessResponse,
+      };
+    } else {
+      return {
+        status: "error",
+        data: data as CreateOrderErrorResponse,
+        httpStatusCode: response.status,
+      };
     }
-
-    return data as CreateOrderResponse;
   } catch (error) {
     const httpError: HttpErrorResponse =
       error instanceof Error ? error : new Error(defaultErrorMessage);
