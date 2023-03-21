@@ -4,7 +4,7 @@ import getAuthToken from "../auth/get-auth-token";
 
 import type {
   CreateOrderRequestBody,
-  OrderResponseBody,
+  OrderResponseBodyMinimal,
 } from "@paypal/paypal-js";
 
 const {
@@ -21,7 +21,7 @@ type CreateOrderErrorResponse = {
   debug_id: string;
 };
 
-type CreateOrderSuccessResponse = OrderResponseBody;
+type CreateOrderSuccessResponse = OrderResponseBodyMinimal;
 
 type HttpErrorResponse = {
   statusCode?: number;
@@ -60,6 +60,7 @@ export default async function createOrder(
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
         "Accept-Language": "en_US",
+        Prefer: "return=minimal",
         "PayPal-Request-Id": SET_BUT_EMPTY, // API requires this header if payment_source.paypal.experience_context is in payload, however it's not applicable to this use case so SET_BUT_EMPTY
       },
       body: JSON.stringify(orderPayload),
