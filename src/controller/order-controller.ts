@@ -10,6 +10,7 @@ import config from "../config";
 
 import type {
   CreateOrderRequestBody,
+  OrderResponseBody,
   PurchaseItem,
   ShippingAddress,
 } from "@paypal/paypal-js";
@@ -129,10 +130,10 @@ async function createOrderHandler(
     */
   }; //as CreateOrderRequestBody; //cast needed for payment_source.paypal with paypal-js@5.1.4
 
-  const orderResponse = await createOrder(orderPayload);
+  const orderResponse = await createOrder({ body: orderPayload, headers: { Prefer: "return=representation" } });
 
   if (orderResponse.status === "ok") {
-    const { id, status } = orderResponse.data;
+    const { id, status } = orderResponse.data as OrderResponseBody;
     request.log.info({ id, status }, "order successfully created");
   } else {
     request.log.error(orderResponse.data, "failed to create order");

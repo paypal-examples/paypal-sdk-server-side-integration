@@ -5,6 +5,7 @@ import getAuthToken from "../auth/get-auth-token";
 import type {
   CreateOrderRequestBody,
   OrderResponseBodyMinimal,
+  OrderResponseBody,
 } from "@paypal/paypal-js";
 
 const {
@@ -21,17 +22,10 @@ type CreateOrderErrorResponse = {
   debug_id: string;
 };
 
-type CreateOrderSuccessResponse = OrderResponseBodyMinimal;
-
-type HttpErrorResponse = {
-  statusCode?: number;
-  details?: Record<string, string>;
-} & Error;
-
 type CreateOrderResponse =
   | {
       status: "ok";
-      data: CreateOrderSuccessResponse;
+      data: OrderResponseBodyMinimal | OrderResponseBody;
       httpStatusCode: HTTPStatusCodeSuccessResponse;
     }
   | {
@@ -40,30 +34,44 @@ type CreateOrderResponse =
       httpStatusCode: Omit<number, HTTPStatusCodeSuccessResponse>;
     };
 
-export default async function createOrder(
-  orderPayload: CreateOrderRequestBody
-): Promise<CreateOrderResponse> {
-  if (!orderPayload) {
+type CreateOrderRequestHeaders = Partial<{
+  "Content-Type": string;
+  Authorization: string;
+  "Accept-Language": string;
+  Prefer: string;
+  "PayPal-Request-Id": string;
+}>;
+
+type CreateOrderOptions = {
+  body: CreateOrderRequestBody;
+  headers?: CreateOrderRequestHeaders;
+};
+
+export default async function createOrder({
+  body,
+  headers = {},
+}: CreateOrderOptions): Promise<CreateOrderResponse> {
+  if (!body) {
     throw new Error("MISSING_PAYLOAD_FOR_CREATE_ORDER");
   }
 
   const { access_token: accessToken } = await getAuthToken();
-
   const defaultErrorMessage = "FAILED_TO_CREATE_ORDER";
+
+  const requestHeaders = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${accessToken}`,
+    "Accept-Language": "en_US",
+    Prefer: "return=minimal",
+    ...headers,
+  };
 
   let response;
   try {
-    const SET_BUT_EMPTY = " "; // a single space
     response = await fetch(`${apiBaseUrl}/v2/checkout/orders`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-        "Accept-Language": "en_US",
-        Prefer: "return=minimal",
-        "PayPal-Request-Id": SET_BUT_EMPTY, // API requires this header if payment_source.paypal.experience_context is in payload, however it's not applicable to this use case so SET_BUT_EMPTY
-      },
-      body: JSON.stringify(orderPayload),
+      headers: requestHeaders,
+      body: JSON.stringify(body),
     });
 
     const data = await response.json();
@@ -71,7 +79,10 @@ export default async function createOrder(
     if (response.ok) {
       return {
         status: "ok",
-        data: data as CreateOrderSuccessResponse,
+        data:
+          requestHeaders.Prefer === "return=minimal"
+            ? (data as OrderResponseBodyMinimal)
+            : (data as OrderResponseBody),
         httpStatusCode: response.status as HTTPStatusCodeSuccessResponse,
       };
     } else {
@@ -82,6 +93,10 @@ export default async function createOrder(
       };
     }
   } catch (error) {
+    type HttpErrorResponse = {
+      statusCode?: number;
+    } & Error;
+
     const httpError: HttpErrorResponse =
       error instanceof Error ? error : new Error(defaultErrorMessage);
     httpError.statusCode = response?.status;
