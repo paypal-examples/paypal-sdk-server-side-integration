@@ -3,27 +3,33 @@ import config from "../config";
 import getAuthToken from "../auth/get-auth-token";
 
 import type { OrderResponseBody } from "@paypal/paypal-js";
+import type {
+  OrderErrorResponse,
+  GetHTTPStatusCodeSuccessResponse,
+  GetOrderResponse,
+  HttpErrorResponse,
+} from "./order";
 
 const {
   paypal: { apiBaseUrl },
 } = config;
 
-type GetOrderResponse = {
-  [key: string]: unknown;
-  details?: Record<string, string>;
-  name?: string;
-  message?: string;
-  debug_id?: string;
-} & OrderResponseBody;
+type GetOrderRequestHeaders = {
+  Authorization: string;
+  "Content-Type": string;
+};
 
-type HttpErrorResponse = {
-  statusCode?: number;
-  details?: Record<string, string>;
-} & Error;
+type GetOrderOptions = {
+  orderID: string;
+  headers?: GetOrderRequestHeaders;
+  query?: { fields: string };
+};
 
-export default async function getOrder(
-  orderID: string
-): Promise<{ data: OrderResponseBody; httpStatus: number }> {
+export default async function getOrder({
+  orderID,
+  headers,
+  query,
+}: GetOrderOptions): Promise<GetOrderResponse> {
   if (!orderID) {
     throw new Error("MISSING_ORDER_ID");
   }
@@ -32,20 +38,36 @@ export default async function getOrder(
 
   const defaultErrorMessage = "FAILED_TO_PATCH_ORDER";
 
+  const requestHeaders = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${accessToken}`,
+    ...headers,
+  };
+
   let response;
   try {
     response = await fetch(`${apiBaseUrl}/v2/checkout/orders/${orderID}`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-        "Accept-Language": "en_US",
-      },
+      headers: requestHeaders,
     });
 
-    const data = (await response.json()) as GetOrderResponse;
+    const data = (await response.json()) as OrderResponseBody;
 
-    return { data, httpStatus: response.status };
+    if (response.ok) {
+      return {
+        status: "ok",
+        data: data,
+        httpStatusCode: response.status as GetHTTPStatusCodeSuccessResponse,
+      };
+    } else {
+      const data = await response.json();
+
+      return {
+        status: "error",
+        data: data as OrderErrorResponse,
+        httpStatusCode: response.status,
+      };
+    }
   } catch (error) {
     const httpError: HttpErrorResponse =
       error instanceof Error ? error : new Error(defaultErrorMessage);

@@ -3,13 +3,15 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import createOrder from "../order/create-order";
 import captureOrder from "../order/capture-order";
 import getOrder from "../order/get-order";
-import patchOrder, { type PatchOrderResponse } from "../order/patch-order";
+import patchOrder from "../order/patch-order";
 import products from "../data/products.json";
 import shippingCost from "../data/shipping-cost.json";
 import config from "../config";
+import type { PatchOrderResponse, PatchRequest } from "../order/order";
 
 import type {
   CreateOrderRequestBody,
+  OrderResponseBody,
   PurchaseItem,
   ShippingAddress,
 } from "@paypal/paypal-js";
@@ -129,10 +131,13 @@ async function createOrderHandler(
     */
   }; //as CreateOrderRequestBody; //cast needed for payment_source.paypal with paypal-js@5.1.4
 
-  const orderResponse = await createOrder(orderPayload);
+  const orderResponse = await createOrder({
+    body: orderPayload,
+    headers: { Prefer: "return=representation" },
+  });
 
   if (orderResponse.status === "ok") {
-    const { id, status } = orderResponse.data;
+    const { id, status } = orderResponse.data as OrderResponseBody;
     request.log.info({ id, status }, "order successfully created");
   } else {
     request.log.error(orderResponse.data, "failed to create order");
@@ -147,8 +152,8 @@ async function captureOrderHandler(
 ) {
   const { orderID } = request.body as { orderID: string };
 
-  const { data, httpStatus } = await captureOrder(orderID);
-
+  const responseData = await captureOrder(orderID);
+  const data = responseData?.data as OrderResponseBody;
   const transaction =
     data?.purchase_units?.[0]?.payments?.captures?.[0] ||
     data?.purchase_units?.[0]?.payments?.authorizations?.[0];
@@ -169,7 +174,7 @@ async function captureOrderHandler(
   }
 
   // Finally, forward a result back to the frontend 'onApprove' callback--always forward a result, since the frontend must handle success/failure display
-  reply.code(httpStatus).send(data);
+  reply.code(responseData.httpStatusCode as number).send(data);
 }
 
 export async function createOrderController(fastify: FastifyInstance) {
@@ -218,18 +223,6 @@ export async function captureOrderController(fastify: FastifyInstance) {
   });
 }
 
-// Patch order
-export type ShippingOption = {
-  id: string;
-  label: string;
-  type: string;
-  selected: boolean;
-  amount: {
-    value: string;
-    currency_code: string;
-  };
-};
-
 // Return the shipping cost for an address (can be "0"), or false to reject shipping to that address
 function calcShipping(address: ShippingAddress): string | boolean {
   const prices = shippingCost as {
@@ -255,9 +248,9 @@ async function onShippingChange(
 
   const defaultErrorMessage = "FAILED_TO_PATCH_ORDER";
 
-  const patchOps: any = [];
+  const patchOps: PatchRequest[] = [];
   // get the current details
-  const orderDetails = (await getOrder(orderID)).data;
+  const orderDetails = (await getOrder({ orderID })).data as OrderResponseBody;
 
   // Loop over the order purchase_units array; most use cases should only have one
   orderDetails?.purchase_units?.forEach((pu, idx) => {
@@ -302,7 +295,7 @@ async function onShippingChange(
     });
   }); // loop over next purchase_unit, if there is one (rare use case)
 
-  return patchOrder(orderID, patchOps);
+  return patchOrder({ body: { patch_request: patchOps }, orderID });
 }
 
 async function patchOrderHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -346,7 +339,7 @@ export async function patchOrderController(fastify: FastifyInstance) {
 //get order details
 async function getOrderHandler(request: FastifyRequest, reply: FastifyReply) {
   const { orderID } = request.body as { orderID: string };
-  const { data } = await getOrder(orderID);
+  const { data } = await getOrder({ orderID });
   reply.send(data);
 }
 
