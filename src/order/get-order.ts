@@ -37,7 +37,6 @@ type GetOrderResponse =
 export default async function getOrder({
   orderID,
   headers,
-  query,
 }: GetOrderOptions): Promise<GetOrderResponse> {
   if (!orderID) {
     throw new Error("MISSING_ORDER_ID");

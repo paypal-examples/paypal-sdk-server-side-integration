@@ -74,7 +74,7 @@ async function createOrderHandler(
   const taxTotal = roundTwoDecimals(itemTotal * 0.05);
   const grandTotal = roundTwoDecimals(itemTotal + shippingTotal + taxTotal);
 
-  const invoiceId = "DEMO-INVNUM-" + Date.now(); // An optional transaction field value, use your existing system/business' invoice ID here or generate one sequentially
+  // const invoiceId = "DEMO-INVNUM-" + Date.now(); // An optional transaction field value, use your existing system/business' invoice ID here or generate one sequentially
 
   const orderPayload: CreateOrderRequestBody = {
     // API reference: https://developer.paypal.com/docs/api/orders/v2/#orders_create
@@ -165,7 +165,7 @@ async function captureOrderHandler(
       `PayPal API order ${orderID}: successful capture`,
       transaction
     );
-    const capturedAmount = (<any>transaction?.amount)?.value;
+    // const capturedAmount = (<any>transaction?.amount)?.value;
 
     // Here you can add code to save the PayPal transaction.id in your records, perhaps calling an asynchronous database writer
     // (Most common use case is for your own record's id to be unique and map to the transaction.invoice_id you provided during creation)
@@ -246,14 +246,14 @@ async function onShippingChange(
     throw new Error("MISSING_ORDER_ID_FOR_PATCH_ORDER");
   }
 
-  const defaultErrorMessage = "FAILED_TO_PATCH_ORDER";
+  // const defaultErrorMessage = "FAILED_TO_PATCH_ORDER";
 
   const patchOps: PatchRequest[] = [];
   // get the current details
   const orderDetails = (await getOrder({ orderID })).data as OrderResponseBody;
 
   // Loop over the order purchase_units array; most use cases should only have one
-  orderDetails?.purchase_units?.forEach((pu, idx) => {
+  orderDetails?.purchase_units?.forEach((pu) => {
     const reference_id = pu.reference_id || "default";
 
     // Use payer's shipping address to calculate a new shipping amount
@@ -262,6 +262,7 @@ async function onShippingChange(
       throw new Error(
         `No shipping to ${JSON.stringify(pu?.shipping?.address, null, 2)}`
       );
+    // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
     pu!.amount!.breakdown!.shipping = {
       value: shipping.toString(),
       currency_code: pu.amount.currency_code || "USD",
@@ -276,7 +277,7 @@ async function onShippingChange(
     */
 
     // Finally sum up the breakdown object's values to set the top level total
-    const grandTotal = Object.entries(pu!.amount!.breakdown!).reduce(
+    const grandTotal = Object.entries(pu?.amount?.breakdown ?? {}).reduce(
       (partialSum, [bdName, bdValue]) => {
         if (bdName.includes("discount")) {
           return partialSum - parseFloat(bdValue.value) * 100;
@@ -286,6 +287,8 @@ async function onShippingChange(
       },
       0
     );
+
+    // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
     pu!.amount!.value = roundTwoDecimals(grandTotal).toString();
 
     patchOps.push({

@@ -1,5 +1,4 @@
 import type {
-  CreateOrderRequestBody,
   OrderResponseBodyMinimal,
   OrderResponseBody,
 } from "@paypal/paypal-js";
