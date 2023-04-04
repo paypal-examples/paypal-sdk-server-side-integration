@@ -212,7 +212,7 @@ To securely store your credentials in your application code, we recommend using 
 2. The client credentials auth token returned by `/v1/oauth2/token` api endpoint should never be passed to the browser. Keep this value in memory on the server-side and use it as the Authorization header for all other api calls.  
    Here's an example API call in Node.js that uses the client credentials auth token as the Authorization header for all other API calls:
 
-```
+```js
 const encodedClientCredentials = Buffer.from(`${client}:${secret}`).toString("base64");
 
 const response = await fetch(`${apiBaseUrl}/v1/oauth2/token`, {
@@ -223,7 +223,7 @@ const response = await fetch(`${apiBaseUrl}/v1/oauth2/token`, {
       "Content-Type": "application/x-www-form-urlencoded",
       "Accept-Language": "en_US",
       Authorization: `Basic ${encodedClientCredentials}`,
-    });
+    }});
 
 const data = await response.json();
 
