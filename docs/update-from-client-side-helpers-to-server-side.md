@@ -5,7 +5,7 @@ We recommend using a combination of client-side and server-side code to integrat
 
 > **Know before you code**
 >
-> [How to Setup a Developer Account](https://www.youtube.com/watch?v=O_9G722SpXQ&t=72s) > <br/><br/>
+> [How to Setup a Developer Account](https://www.youtube.com/watch?v=O_9G722SpXQ&t=72s) <br/><br/>
 
 # What do I need to change?
 
