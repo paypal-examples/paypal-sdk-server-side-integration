@@ -4,10 +4,10 @@ import createOrder from "../order/create-order";
 import captureOrder from "../order/capture-order";
 import getOrder from "../order/get-order";
 import patchOrder from "../order/patch-order";
+import type { PatchOrderResponse, PatchRequest } from "../order/patch-order";
 import products from "../data/products.json";
 import shippingCost from "../data/shipping-cost.json";
 import config from "../config";
-import type { PatchOrderResponse, PatchRequest } from "../order/order";
 
 import type {
   CreateOrderRequestBody,

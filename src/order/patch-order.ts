@@ -1,17 +1,13 @@
 import { fetch } from "undici";
 import config from "../config";
 import getAuthToken from "../auth/get-auth-token";
-import type {
-  OrderErrorResponse,
-  PatchOrderResponse,
-  PatchHTTPStatusCodeSuccessResponse,
-  HttpErrorResponse,
-  PatchOrderRequestBody,
-} from "./order";
+import type { OrderErrorResponse, HttpErrorResponse } from "./order";
 
 const {
   paypal: { apiBaseUrl },
 } = config;
+
+type PatchHTTPStatusCodeSuccessResponse = 204;
 
 type PatchOrderRequestHeaders = {
   "Content-Type": string;
@@ -23,6 +19,29 @@ type PatchOrderOptions = {
   headers?: PatchOrderRequestHeaders;
   orderID: string;
 };
+
+export type PatchRequest = {
+  op: "add" | "remove" | "replace" | "move" | "copy" | "test";
+  from?: string;
+  path: string;
+  value: number | string | boolean | null | object;
+};
+
+type PatchOrderRequestBody = {
+  patch_request: PatchRequest[];
+};
+
+export type PatchOrderResponse =
+  | {
+      status: "ok";
+      data: null;
+      httpStatusCode: PatchHTTPStatusCodeSuccessResponse;
+    }
+  | {
+      status: "error";
+      data: OrderErrorResponse;
+      httpStatusCode: Omit<number, PatchHTTPStatusCodeSuccessResponse>;
+    };
 
 export default async function patchOrder({
   orderID,
