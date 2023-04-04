@@ -5,7 +5,7 @@ We recommend using a combination of client-side and server-side code to integrat
 
 > **Know before you code**
 >
-> [How to Setup a Developer Account](https://www.youtube.com/watch?v=O_9G722SpXQ&t=72s) > <br/><br/>
+> Video Tutorial: [How to Setup a Developer Account](https://www.youtube.com/watch?v=O_9G722SpXQ&t=72s)
 
 # What do I need to change?
 
@@ -19,7 +19,7 @@ Specifically:
 
 1. `onApprove` JavaScript callback must be changed to use your server-side to complete transactions using the PayPal REST API's.
 
-<br/><br/>
+<br/>
 
 # 1. Setup a server-side integration with the PayPal REST API's
 
@@ -33,15 +33,17 @@ PayPal REST API's follow a common integration approach used by other RESTful API
 
 1. Use the OAuth access token to directly make REST calls to the PayPal Order API's -- which you will need for this document.
 
-<br/><br/>
+> **Tip**
+>
+>  Checkout the [Get Started guide](https://developer.paypal.com/api/rest/) to for a quick tutorial on PayPal REST integrations.
+
+<br/>
 
 # 2. Change your `createOrder()` callback
 
-Your current integration may likely be using the client-side order create functions. You will need to replace this code to call your server instead. Before-and-after examples are below.
-
 ## Current state of client-side integration behavior
 
-With the client-side integration pattern, the SDK code would take care of calling the v2 Orders API on your behalf. It would also handle the authorization for you.
+With the client-side integration pattern, the SDK `actions` helper takes care of calling the v2 Orders API on your behalf to create a PayPal `order` and return an order ID:
 
 ```js
 createOrder(data, actions) {
@@ -56,15 +58,9 @@ createOrder(data, actions) {
 }
 ```
 
-### Changes needed to migrate to using server-side integration pattern
-
-To simplify the integration of your e-commerce website with the PayPal v2 Orders API, you can move the order creation process to your server-side. The following steps are required to create an order on the server-side:
-
-1. Obtain an access token to use for PayPal backend API calls. This [video tutorial](https://www.youtube.com/watch?v=HOkkbGSxmp4&t=113s) can walk you through the steps.
-2. Pass necessary checkout info from the browser client to your server-side API endpoint.
-3. Call the PayPal Orders API from your server-side code and return the order ID in your createOrder() callback.
-
 ## New state of client + server integration behavior
+
+You will need to replace the client-side code to call your server instead, returning the order ID created on your server:
 
 ```js
 createOrder: function (data, actions) {
@@ -88,7 +84,17 @@ createOrder: function (data, actions) {
 }
 ```
 
-**The following diagram shows the process of creating an order:**
+### Changes needed to migrate to using server-side integration pattern
+
+To simplify the integration of your e-commerce website with the PayPal v2 Orders API, you can move the order creation process to your server-side. The following steps are required to create an order on the server-side:
+
+1. Obtain an access token to use for PayPal backend API calls. This [video tutorial](https://www.youtube.com/watch?v=HOkkbGSxmp4&t=113s) can walk you through the steps.
+2. Pass necessary checkout info from the browser client to your server-side API endpoint.
+3. Call the PayPal Orders API from your server-side code and return the order ID in your createOrder() callback.
+
+<br/>
+
+***Helpful diagram highlighting the sequence of events required for a client + server integration for creating and returning an order ID:***
 
 ```mermaid
 sequenceDiagram
@@ -113,6 +119,8 @@ sequenceDiagram
 
 ## Current state of client-side integration behavior
 
+With the client-side only integration pattern the `actions` helper handles the capture for you:
+
 ```js
 onApprove(data, actions) {
     return actions.order.capture()
@@ -125,21 +133,11 @@ onApprove(data, actions) {
 }
 ```
 
-### We pass the OrderID for you to the helper
-
-On the client-side, the SDK provides an actions.orders.capture() helper for capturing the order, which takes care of passing the Order ID to the v2 Orders API capture endpoint and handling the authorization.
-
-### We automatically restart the flow for INSTRUMENT_DECLINED errors
-
-#### Changes needed to migrate to using server-side integration pattern
-
-1. Pass the order ID to your server.
-
-2. Update your client-side code to call actions.restart() when there's an INSTRUMENT_DECLINED error.
-
-use code snippet from our [demo page]: (https://developer.paypal.com/demo/checkout/#/pattern/server)
-
 ## New state of client + server integration behavior
+
+You will need to replace the client-side code to call your server instead.  Your server must implment `capture` or `authorize` REST calls as appropriate depending on your use case.
+
+NOTE:  Weith a client-side only integration, the `actions` helper passes order ID under the hood to capture the order.  You will now need to manually pass this order ID to your server side to process the relevant `capture` or `authorize` REST calls on your server:
 
 ```js
 onApprove: function (data, actions) {
@@ -179,6 +177,22 @@ onApprove: function (data, actions) {
       });
 }
 ```
+
+### Changes needed to migrate to using server-side integration pattern
+
+1. Pass the order ID to your server.
+
+2. Update your client-side code to call actions.restart() when there's an INSTRUMENT_DECLINED error.
+
+use code snippet from our [demo page]: (https://developer.paypal.com/demo/checkout/#/pattern/server)
+
+> **Error Handling**
+>
+> You can use the `actions` helper to automatically restart the PayPal checkout flow for INSTRUMENT_DECLINED errors.
+
+<br/>
+
+# Appendix
 
 ## Benefits of using a Server-side Integration
 
