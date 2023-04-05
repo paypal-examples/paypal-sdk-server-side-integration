@@ -3,7 +3,12 @@ import config from "../config";
 import getAuthToken from "../auth/get-auth-token";
 
 import type { OrderResponseBody } from "@paypal/paypal-js";
-import type { OrderErrorResponse, HttpErrorResponse } from "./order";
+import type {
+  OrderErrorResponse,
+  HttpErrorResponse,
+  OrderResponseSuccess,
+  OrderResponseError,
+} from "./order";
 
 const {
   paypal: { apiBaseUrl },
@@ -22,17 +27,12 @@ type GetOrderOptions = {
   query?: { fields: string };
 };
 
-type GetOrderResponse =
-  | {
-      status: "ok";
-      data: OrderResponseBody;
-      httpStatusCode: GetHTTPStatusCodeSuccessResponse;
-    }
-  | {
-      status: "error";
-      data: OrderErrorResponse;
-      httpStatusCode: Omit<number, GetHTTPStatusCodeSuccessResponse>;
-    };
+interface GetOrderResponseSuccess extends OrderResponseSuccess {
+  data: OrderResponseBody;
+  httpStatusCode: GetHTTPStatusCodeSuccessResponse;
+}
+
+type GetOrderResponse = GetOrderResponseSuccess | OrderResponseError;
 
 export default async function getOrder({
   orderID,

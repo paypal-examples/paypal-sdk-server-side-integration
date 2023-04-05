@@ -35,7 +35,7 @@ PayPal REST API's follow a common integration approach used by other RESTful API
 
 > **Tip**
 >
->  Checkout the [Get Started guide](https://developer.paypal.com/api/rest/) to for a quick tutorial on PayPal REST integrations.
+> Checkout the [Get Started guide](https://developer.paypal.com/api/rest/) to for a quick tutorial on PayPal REST integrations.
 
 <br/>
 
@@ -94,7 +94,7 @@ To simplify the integration of your e-commerce website with the PayPal v2 Orders
 
 <br/>
 
-***Helpful diagram highlighting the sequence of events required for a client + server integration for creating and returning an order ID:***
+**_Helpful diagram highlighting the sequence of events required for a client + server integration for creating and returning an order ID:_**
 
 ```mermaid
 sequenceDiagram
@@ -135,9 +135,9 @@ onApprove(data, actions) {
 
 ## New state of client + server integration behavior
 
-You will need to replace the client-side code to call your server instead.  Your server must implment `capture` or `authorize` REST calls as appropriate depending on your use case.
+You will need to replace the client-side code to call your server instead. Your server must implment `capture` or `authorize` REST calls as appropriate depending on your use case.
 
-NOTE:  Weith a client-side only integration, the `actions` helper passes order ID under the hood to capture the order.  You will now need to manually pass this order ID to your server side to process the relevant `capture` or `authorize` REST calls on your server:
+NOTE: Weith a client-side only integration, the `actions` helper passes order ID under the hood to capture the order. You will now need to manually pass this order ID to your server side to process the relevant `capture` or `authorize` REST calls on your server:
 
 ```js
 onApprove: function (data, actions) {
@@ -213,17 +213,20 @@ To securely store your credentials in your application code, we recommend using 
    Here's an example API call in Node.js that uses the client credentials auth token as the Authorization header for all other API calls:
 
 ```js
-const encodedClientCredentials = Buffer.from(`${client}:${secret}`).toString("base64");
+const encodedClientCredentials = Buffer.from(`${client}:${secret}`).toString(
+  "base64"
+);
 
 const response = await fetch(`${apiBaseUrl}/v1/oauth2/token`, {
-    method: "POST",
-    body: "grant_type=client_credentials",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Accept-Language": "en_US",
-      Authorization: `Basic ${encodedClientCredentials}`,
-    }});
+  method: "POST",
+  body: "grant_type=client_credentials",
+  headers: {
+    Accept: "application/json",
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Accept-Language": "en_US",
+    Authorization: `Basic ${encodedClientCredentials}`,
+  },
+});
 
 const data = await response.json();
 

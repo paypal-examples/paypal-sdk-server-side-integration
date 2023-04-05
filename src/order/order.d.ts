@@ -14,7 +14,7 @@ export type OrderErrorResponse = {
 type HTTPStatusCodeSuccessResponse = 200 | 201 | 204 | 207;
 
 // for create order and capture order
-export type CHTTPStatusCodeSuccessResponse = 200 | 201;
+export type CreateCaptureHTTPStatusCodeSuccessResponse = 200 | 201;
 
 export type OrderRequestHeaders = Partial<{
   "Content-Type": string;
@@ -24,27 +24,24 @@ export type OrderRequestHeaders = Partial<{
   "PayPal-Request-Id": string;
 }>;
 
-type OrderResponseTypes =
-  | OrderResponseBodyMinimal
-  | OrderResponseBody
-  | OrderErrorResponse
-  | null;
-export type OrderSuccessResponseTypes =
-  | OrderResponseBodyMinimal
-  | OrderResponseBody
-  | null;
+export interface OrderResponseSuccess {
+  status: "ok";
+}
+
+interface CreateCaptureOrderResponseSuccess extends OrderResponseSuccess {
+  data: OrderResponseBodyMinimal | OrderResponseBody;
+  httpStatusCode: CreateCaptureHTTPStatusCodeSuccessResponse;
+}
+
+export type OrderResponseError = {
+  status: "error";
+  data: OrderErrorResponse;
+  httpStatusCode: Omit<number, HTTPStatusCodeSuccessResponse>;
+};
 
 export type OrderResponse =
-  | {
-      status: "ok";
-      data: OrderResponseBodyMinimal | OrderResponseBody;
-      httpStatusCode: CHTTPStatusCodeSuccessResponse;
-    }
-  | {
-      status: "error";
-      data: OrderErrorResponse;
-      httpStatusCode: Omit<number, HTTPStatusCodeSuccessResponse>;
-    };
+  | CreateCaptureOrderResponseSuccess
+  | OrderResponseError;
 
 export type HttpErrorResponse = {
   statusCode?: number;

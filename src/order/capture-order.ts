@@ -9,7 +9,7 @@ import type {
 } from "@paypal/paypal-js";
 import type {
   HttpErrorResponse,
-  CHTTPStatusCodeSuccessResponse,
+  CreateCaptureHTTPStatusCodeSuccessResponse,
   OrderErrorResponse,
   OrderResponse,
 } from "./order";
@@ -30,7 +30,6 @@ type CaptureOrderRequestHeaders = Partial<{
   Prefer: string;
   Authorization: string;
   "Content-Type": string;
-  prefer_header: string;
 }>;
 
 type CaptureOrderOptions = {
@@ -106,7 +105,8 @@ async function captureOrderAPI({
           requestHeaders.Prefer === "return=minimal"
             ? (data as OrderResponseBodyMinimal)
             : (data as OrderResponseBody),
-        httpStatusCode: response.status as CHTTPStatusCodeSuccessResponse,
+        httpStatusCode:
+          response.status as CreateCaptureHTTPStatusCodeSuccessResponse,
       };
     } else {
       return {

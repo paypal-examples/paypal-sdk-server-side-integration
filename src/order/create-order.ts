@@ -11,7 +11,7 @@ import type {
   HttpErrorResponse,
   OrderResponse,
   OrderErrorResponse,
-  CHTTPStatusCodeSuccessResponse,
+  CreateCaptureHTTPStatusCodeSuccessResponse,
 } from "./order";
 
 const {
@@ -67,7 +67,8 @@ export default async function createOrder({
           requestHeaders.Prefer === "return=minimal"
             ? (data as OrderResponseBodyMinimal)
             : (data as OrderResponseBody),
-        httpStatusCode: response.status as CHTTPStatusCodeSuccessResponse,
+        httpStatusCode:
+          response.status as CreateCaptureHTTPStatusCodeSuccessResponse,
       };
     } else {
       return {
