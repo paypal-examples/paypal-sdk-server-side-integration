@@ -1,11 +1,7 @@
-# Upgrading your Client-side integration to a Server-side integration
+# Upgrading your Client-side only integration to a Server-side integration
 
 We recommend using a combination of client-side and server-side code to integrate the PayPal Buttons on your e-commerce website. If you currently have client-side only PayPal Buttons integration, this page will describe how to update your integration to the recommended approach.
 <br/><br/>
-
-> **Know before you code**
->
-> Video Tutorial: [How to Setup a Developer Account](https://www.youtube.com/watch?v=O_9G722SpXQ&t=72s)
 
 # What do I need to change?
 
@@ -15,13 +11,13 @@ Specifically:
 
 1. Setup a server-side integration with the [PayPal REST API's](https://developer.paypal.com/api/rest/).
 
-1. `createOrder` JavaScript callback must be changed to use your server-side to create and return an Order ID using the PayPal REST API's.
+1. `createOrder` JavaScript callback must be changed to use your server-side to create and return an Order ID using the PayPal REST APIs.
 
-1. `onApprove` JavaScript callback must be changed to use your server-side to complete transactions using the PayPal REST API's.
+1. `onApprove` JavaScript callback must be changed to use your server-side to complete transactions using the PayPal REST APIs.
 
 <br/>
 
-# 1. Setup a server-side integration with the PayPal REST API's
+# 1. Setup a server-side integration with the PayPal REST APIs
 
 PayPal REST API's follow a common integration approach used by other RESTful API's out there in the world. For PayPal, you will minimally need to do the following:
 
@@ -31,7 +27,7 @@ PayPal REST API's follow a common integration approach used by other RESTful API
 
 1. Use the client + secret combination to obtain an OAuth access token
 
-1. Use the OAuth access token to directly make REST calls to the PayPal Order API's -- which you will need for this document.
+1. Use the OAuth access token to directly make REST calls to the PayPal Order APIs -- which you will need for this document.
 
 > **Tip**
 >
@@ -101,8 +97,8 @@ sequenceDiagram
     actor Buyer
     participant M(HTML) as Merchant HTML Page
     participant M(S) as Merchant Server
-    participant PP(SDK) as Paypal JS SDK
-    participant PP(ORDER) as Paypal Orders API
+    participant PP(SDK) as PayPal JS SDK
+    participant PP(ORDER) as PayPal Orders API
     M(HTML)->>PP(SDK): Initialize PayPal Button
     PP(SDK)->>M(HTML): Render PayPal Button
     Buyer->>PP(SDK): Click PayPal Button (start checkout)
@@ -137,7 +133,7 @@ onApprove(data, actions) {
 
 You will need to replace the client-side code to call your server instead. Your server must implment `capture` or `authorize` REST calls as appropriate depending on your use case.
 
-NOTE: Weith a client-side only integration, the `actions` helper passes order ID under the hood to capture the order. You will now need to manually pass this order ID to your server side to process the relevant `capture` or `authorize` REST calls on your server:
+NOTE: With a client-side only integration, the `actions` helper passes order ID under the hood to capture the order. You will now need to manually pass this order ID to your server side to process the relevant `capture` or `authorize` REST calls on your server:
 
 ```js
 onApprove: function (data, actions) {
@@ -209,7 +205,7 @@ To securely store your credentials in your application code, we recommend using 
 - PHP: https://github.com/vlucas/phpdotenv
 - Python: https://github.com/theskumar/python-dotenv
 
-2. The client credentials auth token returned by `/v1/oauth2/token` api endpoint should never be passed to the browser. Keep this value in memory on the server-side and use it as the Authorization header for all other api calls.  
+2. The client credentials auth token returned by `/v1/oauth2/token` api endpoint should never be passed to the browser. Keep this value in memory on the server-side and use it as the Authorization header for all other api calls.
    Here's an example API call in Node.js that uses the client credentials auth token as the Authorization header for all other API calls:
 
 ```js
