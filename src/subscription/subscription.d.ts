@@ -37,12 +37,20 @@ interface CreateSubscriptionResponseSuccess extends ResponseSuccess {
   httpStatusCode: CreateHTTPStatusCodeSuccessResponse;
 }
 
-export type CreateSubscriptionResponseError = {
+export type SubscriptionResponseError = {
   status: "error";
   data: PaypalApiErrorResponse;
   httpStatusCode: Omit<number, HTTPStatusCodeSuccessResponse>;
 };
 
+interface ActivateSubscriptionResponseSuccess extends ResponseSuccess {
+  httpStatusCode: CreateHTTPStatusCodeSuccessResponse;
+}
+
 export type CreateSubscriptionResponse =
   | CreateSubscriptionResponseSuccess
-  | CreateSubscriptionResponseError;
+  | SubscriptionResponseError;
+
+export type ActivateSubscriptionResponse =
+  | ActivateSubscriptionResponseSuccess
+  | SubscriptionResponseError;

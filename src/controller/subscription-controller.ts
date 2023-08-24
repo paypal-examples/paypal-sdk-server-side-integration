@@ -1,7 +1,11 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import createSubscription from "../subscription/create-subscription";
-import { CreateSubscriptionRequestBody } from "@paypal/paypal-js";
+import {
+  CreateSubscriptionRequestBody,
+  ShippingAddress,
+} from "@paypal/paypal-js";
 import config from "../config";
+import activateSubscription from "../subscription/activate-subscription";
 
 const {
   paypal: { subscriptionPlanId },
@@ -11,6 +15,9 @@ async function createSubscriptionHandler(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  const { userAction = "SUBSCRIBE_NOW" } = request.body as {
+    userAction: string;
+  };
   /**
    * To create subscription, you must create a product and a subscription plan.
    * Steps:
@@ -25,6 +32,9 @@ async function createSubscriptionHandler(
    */
   const body: CreateSubscriptionRequestBody = {
     plan_id: String(subscriptionPlanId),
+    application_context: {
+      user_action: userAction,
+    },
   };
   const { data } = await createSubscription(body);
   reply.send(data);
@@ -35,6 +45,47 @@ export async function createSubscriptionController(fastify: FastifyInstance) {
     method: "POST",
     url: "/create-subscription",
     handler: createSubscriptionHandler,
-    schema: {},
+    schema: {
+      body: {
+        type: "object",
+        required: [],
+        properties: {
+          userAction: {
+            type: "string",
+          },
+        },
+      },
+    },
+  });
+}
+
+async function activateSubscriptionHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const { subscriptionId } = request.body as { subscriptionId: string };
+  const { status } = await activateSubscription({
+    subscriptionId,
+    reason: "Activate the susbcription",
+  });
+  reply.send({ status });
+}
+
+export async function activateSubscriptionController(fastify: FastifyInstance) {
+  fastify.route({
+    method: "POST",
+    url: "/activate-subscription",
+    handler: activateSubscriptionHandler,
+    schema: {
+      body: {
+        type: "object",
+        required: [],
+        properties: {
+          subscriptionId: {
+            type: "string",
+          },
+        },
+      },
+    },
   });
 }
