@@ -54,3 +54,12 @@ export type CreateSubscriptionResponse =
 export type ActivateSubscriptionResponse =
   | ActivateSubscriptionResponseSuccess
   | SubscriptionResponseError;
+
+interface ReviseSubscriptionResponseSuccess extends ResponseSuccess {
+  data: SubscriptionResponseBody;
+  httpStatusCode: CreateHTTPStatusCodeSuccessResponse;
+}
+
+export type ReviseSubscriptionResponse =
+  | ReviseSubscriptionResponseSuccess
+  | SubscriptionResponseError;

@@ -2,13 +2,14 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import createSubscription from "../subscription/create-subscription";
 import {
   CreateSubscriptionRequestBody,
-  ShippingAddress,
+  ReviseSubscriptionRequestBody,
 } from "@paypal/paypal-js";
 import config from "../config";
 import activateSubscription from "../subscription/activate-subscription";
+import reviseSubscription from "../subscription/revise-subscription";
 
 const {
-  paypal: { subscriptionPlanId },
+  paypal: { subscriptionPlanId, subscriptionPlanIdForRevise },
 } = config;
 
 async function createSubscriptionHandler(
@@ -66,7 +67,7 @@ async function activateSubscriptionHandler(
   const { subscriptionId } = request.body as { subscriptionId: string };
   const { status } = await activateSubscription({
     subscriptionId,
-    reason: "Activate the susbcription",
+    reason: "Activate the subscription",
   });
   reply.send({ status });
 }
@@ -76,6 +77,43 @@ export async function activateSubscriptionController(fastify: FastifyInstance) {
     method: "POST",
     url: "/activate-subscription",
     handler: activateSubscriptionHandler,
+    schema: {
+      body: {
+        type: "object",
+        required: [],
+        properties: {
+          subscriptionId: {
+            type: "string",
+          },
+        },
+      },
+    },
+  });
+}
+
+async function reviseSubscriptionHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const { subscriptionId } = request.body as {
+    subscriptionId: string;
+  };
+  /**
+   * A subscription can be revised to a different plan, quantity or pricing scheme
+   * Reference: https://developer.paypal.com/docs/api/subscriptions/v1/#subscriptions_revise
+   */
+  const body: ReviseSubscriptionRequestBody = {
+    plan_id: String(subscriptionPlanIdForRevise),
+  };
+  const { data } = await reviseSubscription({ subscriptionId, body });
+  reply.send(data);
+}
+
+export async function reviseSubscriptionController(fastify: FastifyInstance) {
+  fastify.route({
+    method: "POST",
+    url: "/revise-subscription",
+    handler: reviseSubscriptionHandler,
     schema: {
       body: {
         type: "object",

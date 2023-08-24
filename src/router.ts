@@ -11,6 +11,7 @@ import { setErrorHandler } from "./controller/error-controller";
 import {
   activateSubscriptionController,
   createSubscriptionController,
+  reviseSubscriptionController,
 } from "./controller/subscription-controller";
 
 export default async function router(fastify: FastifyInstance) {
@@ -23,4 +24,5 @@ export default async function router(fastify: FastifyInstance) {
   fastify.register(getOrderController, { prefix: "/api/paypal" });
   fastify.register(createSubscriptionController, { prefix: "/api/paypal" });
   fastify.register(activateSubscriptionController, { prefix: "/api/paypal" });
+  fastify.register(reviseSubscriptionController, { prefix: "/api/paypal" });
 }
