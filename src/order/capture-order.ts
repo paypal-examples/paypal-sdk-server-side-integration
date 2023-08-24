@@ -8,11 +8,11 @@ import type {
   OrderResponseBodyMinimal,
 } from "@paypal/paypal-js";
 import type {
-  HttpErrorResponse,
   CreateCaptureHTTPStatusCodeSuccessResponse,
   OrderErrorResponse,
   OrderResponse,
 } from "./order";
+import type { HttpErrorResponse } from "../types/common";
 
 const {
   paypal: { apiBaseUrl },

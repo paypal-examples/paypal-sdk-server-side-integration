@@ -16,6 +16,8 @@ const {
   PAYPAL_INTENT,
   PAYPAL_API_BASE_URL,
   PAYPAL_WEB_BASE_URL,
+  PAYPAL_SUBSCRIPTION_PLAN_ID,
+  PAYPAL_SUBSCRIPTION_PLAN_ID_FOR_REVISE,
 } = process.env;
 
 function getConfig() {
@@ -35,6 +37,8 @@ function getConfig() {
           ? "https://api-m.sandbox.paypal.com"
           : "https://api-m.paypal.com",
       webBaseUrl: PAYPAL_WEB_BASE_URL || "https://www.paypal.com",
+      subscriptionPlanId: PAYPAL_SUBSCRIPTION_PLAN_ID,
+      subscriptionPlanIdForRevise: PAYPAL_SUBSCRIPTION_PLAN_ID_FOR_REVISE,
     },
   };
 }
