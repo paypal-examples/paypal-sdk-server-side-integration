@@ -1,101 +1,109 @@
 <html>
-<head>
-  <meta charset="UTF-8" />
-  <title>PayPal Buttons Demo</title>
+  <head>
+    <meta charset="UTF-8" />
+    <title>PayPal Buttons Demo</title>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-  <script src="https://unpkg.com/@paypal/paypal-js@5.1.4/dist/iife/paypal-js.min.js"></script>
-</head>
-<body>
-<h1>PayPal Subscription Example</h1>
-<p>In this example the subscription is being created with <pre>user_action=SUBSCRIBE_NOW (default)</pre></p>
-<p>Visit the user_action attribute in the <a href="https://developer.paypal.com/docs/api/subscriptions/v1/#definition-application_context">application_context</a> </p>
-<div id="paypal-button-container" style="max-width: 440px"></div>
-<script>
-  function loadPayPalSDK() {
-    return fetch("/api/paypal/client-config")
-      .then((response) => response.json())
-      .then(({ clientID, webBaseUrl }) => {
-        return paypalLoadScript({
-          // Supported query parameters: https://developer.paypal.com/sdk/js/configuration/#link-queryparameters
-          "client-id": clientID,
-          sdkBaseURL: `${webBaseUrl}/sdk/js`,
-          intent: "subscription",
-          vault: true
-        });
-      });
-  }
-
-  // Example function to show a result to the user. Your site's UI library can be used instead,
-  // however alert() should not be used as it will interrupt the JS SDK window
-  function resultMessage(message, options = { hideButtons: false }) {
-    const container = document.getElementById("paypal-button-container");
-    if (options.hideButtons) container.style.display = "none";
-    const p = document.createElement("p");
-    p.innerHTML = `<strong>${message}</strong>`;
-    container.parentNode.appendChild(p);
-  }
-
-  loadPayPalSDK().then(() => {
-    window.paypal
-      .Buttons({
-        style: {
-          label: "subscribe"
-        },
-        createSubscription() {
-          return fetch("/api/paypal/create-subscription", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({})
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (data?.id) {
-                return data.id;
-              } else {
-                console.error(
-                  { callback: "createSubscription", serverResponse: data },
-                  JSON.stringify(data, null, 2)
-                );
-                // (Optional) The following hides the button container and shows a message about why checkout can't be initiated
-                const errorDetail = data?.details?.[0];
-                resultMessage(
-                  `Could not initiate PayPal Checkout...<br><br>${
-                    errorDetail?.issue || ""
-                  } ${
-                    errorDetail?.description || data?.message || ""
-                  } ` +
-                  (data?.debug_id ? `(${data.debug_id})` : ""),
-                  { hideButtons: true }
-                );
-              }
-            })
-            .catch((error) => {
-              throw new Error(
-                `createOrder callback failed - ${error.message}`
-              );
+    <script src="https://unpkg.com/@paypal/paypal-js@5.1.4/dist/iife/paypal-js.min.js"></script>
+  </head>
+  <body>
+    <h1>PayPal Subscription Example</h1>
+    <div>
+      In this example the subscription is being created with
+      <pre>user_action=SUBSCRIBE_NOW (default)</pre>
+    </div>
+    <p>
+      Visit the user_action attribute in the
+      <a
+        href="https://developer.paypal.com/docs/api/subscriptions/v1/#definition-application_context"
+        >application_context</a
+      >
+    </p>
+    <div id="paypal-button-container" style="max-width: 440px"></div>
+    <script>
+      function loadPayPalSDK() {
+        return fetch("/api/paypal/client-config")
+          .then((response) => response.json())
+          .then(({ clientID, webBaseUrl }) => {
+            return paypalLoadScript({
+              // Supported query parameters: https://developer.paypal.com/sdk/js/configuration/#link-queryparameters
+              "client-id": clientID,
+              sdkBaseURL: `${webBaseUrl}/sdk/js`,
+              intent: "subscription",
+              vault: true,
             });
-        },
-        onApprove(data, actions) {
-          resultMessage(`You have successfully subscribed to the plan. Your subscription id is: ${data.subscriptionID}`);
-        },
-        onError(error) {
-          console.error({
-            callback: "onError",
-            errorObject: error
           });
-        }
+      }
 
-      })
-      .render("#paypal-button-container")
-      .catch((error) => {
-        console.error("failed to render the PayPal Buttons", error);
+      // Example function to show a result to the user. Your site's UI library can be used instead,
+      // however alert() should not be used as it will interrupt the JS SDK window
+      function resultMessage(message, options = { hideButtons: false }) {
+        const container = document.getElementById("paypal-button-container");
+        if (options.hideButtons) container.style.display = "none";
+        const p = document.createElement("p");
+        p.innerHTML = `<strong>${message}</strong>`;
+        container.parentNode.appendChild(p);
+      }
+
+      loadPayPalSDK().then(() => {
+        window.paypal
+          .Buttons({
+            style: {
+              label: "subscribe",
+            },
+            createSubscription() {
+              return fetch("/api/paypal/create-subscription", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({}),
+              })
+                .then((response) => response.json())
+                .then((data) => {
+                  if (data?.id) {
+                    return data.id;
+                  } else {
+                    console.error(
+                      { callback: "createSubscription", serverResponse: data },
+                      JSON.stringify(data, null, 2)
+                    );
+                    // (Optional) The following hides the button container and shows a message about why checkout can't be initiated
+                    const errorDetail = data?.details?.[0];
+                    resultMessage(
+                      `Could not initiate PayPal Checkout...<br><br>${
+                        errorDetail?.issue || ""
+                      } ${errorDetail?.description || data?.message || ""} ` +
+                        (data?.debug_id ? `(${data.debug_id})` : ""),
+                      { hideButtons: true }
+                    );
+                  }
+                })
+                .catch((error) => {
+                  throw new Error(
+                    `createOrder callback failed - ${error.message}`
+                  );
+                });
+            },
+            onApprove(data, actions) {
+              resultMessage(
+                `You have successfully subscribed to the plan. Your subscription id is: ${data.subscriptionID}`
+              );
+            },
+            onError(error) {
+              console.error({
+                callback: "onError",
+                errorObject: error,
+              });
+            },
+          })
+          .render("#paypal-button-container")
+          .catch((error) => {
+            console.error("failed to render the PayPal Buttons", error);
+          });
       });
-  });
-</script>
-</body>
+    </script>
+  </body>
 </html>
