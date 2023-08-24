@@ -3,10 +3,10 @@ import config from "../config";
 import getAuthToken from "../auth/get-auth-token";
 import type {
   OrderErrorResponse,
-  HttpErrorResponse,
   OrderResponseError,
   OrderResponseSuccess,
 } from "./order";
+import type { HttpErrorResponse } from "../types/common";
 
 const {
   paypal: { apiBaseUrl },

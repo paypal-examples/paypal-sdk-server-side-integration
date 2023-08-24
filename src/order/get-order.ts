@@ -5,10 +5,10 @@ import getAuthToken from "../auth/get-auth-token";
 import type { OrderResponseBody } from "@paypal/paypal-js";
 import type {
   OrderErrorResponse,
-  HttpErrorResponse,
   OrderResponseSuccess,
   OrderResponseError,
 } from "./order";
+import type { HttpErrorResponse } from "../types/common";
 
 const {
   paypal: { apiBaseUrl },

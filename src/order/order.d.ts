@@ -2,16 +2,11 @@ import type {
   OrderResponseBodyMinimal,
   OrderResponseBody,
 } from "@paypal/paypal-js";
+import { PaypalApiErrorResponseBody } from "../types/common";
 
-export type OrderErrorResponse = {
-  [key: string]: unknown;
-  details: Record<string, string>;
-  name: string;
-  message: string;
-  debug_id: string;
-};
+export type OrderErrorResponse = PaypalApiErrorResponseBody;
 
-type HTTPStatusCodeSuccessResponse = 200 | 201 | 204 | 207;
+type HTTPStatusCodeSuccessResponse = HTTPStatusCodeSuccessResponse;
 
 // for create order and capture order
 export type CreateCaptureHTTPStatusCodeSuccessResponse = 200 | 201;
@@ -42,7 +37,3 @@ export type OrderResponseError = {
 export type OrderResponse =
   | CreateCaptureOrderResponseSuccess
   | OrderResponseError;
-
-export type HttpErrorResponse = {
-  statusCode?: number;
-} & Error;
