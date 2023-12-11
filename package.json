@@ -20,7 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "@fastify/static": "^6.9.0",
-    "@paypal/paypal-js": "^5.1.5",
+    "@paypal/paypal-js": "^8.0.0-beta.5",
     "dotenv": "^16.0.3",
     "fastify": "^4.15.0",
     "pino": "^8.11.0",

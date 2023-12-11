@@ -1,6 +1,8 @@
 // add a ".env" file to your project to set these environment variables
-import { INTENT } from "@paypal/paypal-js";
+import { CreateOrderRequestBody } from "@paypal/paypal-js";
 import * as dotenv from "dotenv";
+
+type INTENT = CreateOrderRequestBody["intent"];
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();

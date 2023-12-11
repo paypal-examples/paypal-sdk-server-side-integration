@@ -17,8 +17,9 @@ async function createSubscriptionHandler(
   reply: FastifyReply
 ) {
   const { userAction = "SUBSCRIBE_NOW" } = request.body as {
-    userAction: string;
+    userAction: "SUBSCRIBE_NOW" | "CONTINUE";
   };
+
   /**
    * To create subscription, you must create a product and a subscription plan.
    * Steps:
@@ -35,6 +36,8 @@ async function createSubscriptionHandler(
     plan_id: String(subscriptionPlanId),
     application_context: {
       user_action: userAction,
+      return_url: "",
+      cancel_url: "",
     },
   };
   const { data } = await createSubscription(body);

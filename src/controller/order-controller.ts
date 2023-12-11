@@ -4,17 +4,25 @@ import createOrder from "../order/create-order";
 import captureOrder from "../order/capture-order";
 import getOrder from "../order/get-order";
 import patchOrder from "../order/patch-order";
-import type { PatchOrderResponse, PatchRequest } from "../order/patch-order";
+import type {
+  PatchOrderResponse,
+  PatchOrderOptions,
+} from "../order/patch-order";
 import products from "../data/products.json";
 import shippingCost from "../data/shipping-cost.json";
 import config from "../config";
 
 import type {
   CreateOrderRequestBody,
-  OrderResponseBody,
-  PurchaseItem,
-  ShippingAddress,
+  OrderSuccessResponseBody,
+  PurchaseUnitItem,
+  OnShippingChangeData,
 } from "@paypal/paypal-js";
+
+// TODO: update front-end to use the new onShippingAddressChange() callback
+type PartialShippingAddress = NonNullable<
+  OnShippingChangeData["shipping_address"]
+>;
 
 const {
   paypal: { currency, intent },
@@ -30,7 +38,7 @@ function roundTwoDecimals(value: number): number {
 }
 
 function getItemsAndTotal(cart: CartItem[]): {
-  itemsArray: PurchaseItem[];
+  itemsArray: PurchaseUnitItem[];
   itemTotal: number;
 } {
   // API reference: https://developer.paypal.com/docs/api/orders/v2/#orders_create!path=purchase_units/items&t=request
@@ -50,7 +58,7 @@ function getItemsAndTotal(cart: CartItem[]): {
         currency_code: currency,
         value: price,
       },
-    } as PurchaseItem;
+    } as PurchaseUnitItem;
   });
 
   const itemTotal = itemsArray.reduce(
@@ -137,7 +145,7 @@ async function createOrderHandler(
   });
 
   if (orderResponse.status === "ok") {
-    const { id, status } = orderResponse.data as OrderResponseBody;
+    const { id, status } = orderResponse.data as OrderSuccessResponseBody;
     request.log.info({ id, status }, "order successfully created");
   } else {
     request.log.error(orderResponse.data, "failed to create order");
@@ -153,7 +161,7 @@ async function captureOrderHandler(
   const { orderID } = request.body as { orderID: string };
 
   const responseData = await captureOrder(orderID);
-  const data = responseData?.data as OrderResponseBody;
+  const data = responseData?.data as OrderSuccessResponseBody;
   const transaction =
     data?.purchase_units?.[0]?.payments?.captures?.[0] ||
     data?.purchase_units?.[0]?.payments?.authorizations?.[0];
@@ -224,10 +232,11 @@ export async function captureOrderController(fastify: FastifyInstance) {
 }
 
 // Return the shipping cost for an address (can be "0"), or false to reject shipping to that address
-function calcShipping(address: ShippingAddress): string | boolean {
+function calcShipping(address: PartialShippingAddress): string | boolean {
   const prices = shippingCost as {
     [key: string]: { [key: string]: string | boolean };
   };
+
   const country = address?.country_code;
   const state = address?.state;
   return (
@@ -240,7 +249,7 @@ function calcShipping(address: ShippingAddress): string | boolean {
 
 async function onShippingChange(
   orderID: string,
-  shippingAddress: ShippingAddress
+  shippingAddress: PartialShippingAddress
 ): Promise<PatchOrderResponse> {
   if (!orderID) {
     throw new Error("MISSING_ORDER_ID_FOR_PATCH_ORDER");
@@ -248,9 +257,10 @@ async function onShippingChange(
 
   // const defaultErrorMessage = "FAILED_TO_PATCH_ORDER";
 
-  const patchOps: PatchRequest[] = [];
+  const patchOps: PatchOrderOptions["body"] = [];
   // get the current details
-  const orderDetails = (await getOrder({ orderID })).data as OrderResponseBody;
+  const orderDetails = (await getOrder({ orderID }))
+    .data as OrderSuccessResponseBody;
 
   // Loop over the order purchase_units array; most use cases should only have one
   orderDetails?.purchase_units?.forEach((pu) => {
@@ -265,7 +275,7 @@ async function onShippingChange(
     // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
     pu!.amount!.breakdown!.shipping = {
       value: shipping.toString(),
-      currency_code: pu.amount.currency_code || "USD",
+      currency_code: pu?.amount?.currency_code || "USD",
     };
 
     /* Similarly you could have a new tax calculation, etc
@@ -294,17 +304,18 @@ async function onShippingChange(
     patchOps.push({
       op: "replace",
       path: `/purchase_units/@reference_id=='${reference_id}'/amount`,
-      value: pu.amount,
+      // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
+      value: pu!.amount!,
     });
   }); // loop over next purchase_unit, if there is one (rare use case)
 
-  return patchOrder({ body: { patch_request: patchOps }, orderID });
+  return patchOrder({ body: patchOps, orderID });
 }
 
 async function patchOrderHandler(request: FastifyRequest, reply: FastifyReply) {
   const { orderID, shippingAddress } = request.body as {
     orderID: string;
-    shippingAddress: ShippingAddress;
+    shippingAddress: PartialShippingAddress;
   };
 
   const patchOrderResponse = await onShippingChange(orderID, shippingAddress);

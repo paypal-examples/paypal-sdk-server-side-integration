@@ -4,33 +4,39 @@ import config from "../config";
 import getAuthToken from "../auth/get-auth-token";
 
 import type {
-  OrderResponseBody,
-  OrderResponseBodyMinimal,
+  OrderSuccessResponseBody,
+  OrderSuccessResponseBodyMinimal,
+  OrderErrorResponseBody,
+  CaptureOrder,
 } from "@paypal/paypal-js";
-import type {
-  CreateCaptureHTTPStatusCodeSuccessResponse,
-  OrderErrorResponse,
-  OrderResponse,
-} from "./order";
 import type { HttpErrorResponse } from "../types/common";
 
 const {
   paypal: { apiBaseUrl },
 } = config;
 
-type CaptureOrderRequestBody = {
-  [key: string]: unknown;
-  payment_source?: { [key: string]: unknown };
+type CaptureOrderRequestBody = NonNullable<
+  CaptureOrder["requestBody"]
+>["content"]["application/json"];
+
+// the Authorization header is missing from the headers list
+type CaptureOrderRequestHeaders = Partial<
+  CaptureOrder["parameters"]["header"]
+> & {
+  Authorization?: string;
 };
 
-type CaptureOrderRequestHeaders = Partial<{
-  "PayPal-Auth-Assertion": string;
-  "PayPal-Client-Metadata-Id": string;
-  "PayPal-Request-Id": string;
-  Prefer: string;
-  Authorization: string;
-  "Content-Type": string;
-}>;
+type CaptureOrderSuccessResponse = {
+  status: "ok";
+  data: OrderSuccessResponseBody | OrderSuccessResponseBodyMinimal;
+  httpStatusCode: 200 | 201;
+};
+
+type CaptureOrderErrorResponse = {
+  status: "error";
+  data: OrderErrorResponseBody;
+  httpStatusCode: number;
+};
 
 type CaptureOrderOptions = {
   body?: CaptureOrderRequestBody;
@@ -40,7 +46,7 @@ type CaptureOrderOptions = {
 
 export default async function captureOrder(
   orderID: string
-): Promise<OrderResponse> {
+): Promise<CaptureOrderSuccessResponse | CaptureOrderErrorResponse> {
   const uniqueRequestId: string = randomUUID();
   // Call the API
   let responseData = await captureOrderAPI({
@@ -67,7 +73,9 @@ async function captureOrderAPI({
   orderID,
   body,
   headers,
-}: CaptureOrderOptions): Promise<OrderResponse> {
+}: CaptureOrderOptions): Promise<
+  CaptureOrderSuccessResponse | CaptureOrderErrorResponse
+> {
   if (!orderID) {
     throw new Error("MISSING_ORDER_ID_FOR_CAPTURE_ORDER");
   }
@@ -103,17 +111,16 @@ async function captureOrderAPI({
         status: "ok",
         data:
           requestHeaders.Prefer === "return=minimal"
-            ? (data as OrderResponseBodyMinimal)
-            : (data as OrderResponseBody),
-        httpStatusCode:
-          response.status as CreateCaptureHTTPStatusCodeSuccessResponse,
-      };
+            ? (data as OrderSuccessResponseBodyMinimal)
+            : (data as OrderSuccessResponseBody),
+        httpStatusCode: response.status,
+      } as CaptureOrderSuccessResponse;
     } else {
       return {
         status: "error",
-        data: data as OrderErrorResponse,
+        data,
         httpStatusCode: response.status,
-      };
+      } as CaptureOrderErrorResponse;
     }
   } catch (error) {
     const httpError: HttpErrorResponse =

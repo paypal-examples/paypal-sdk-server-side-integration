@@ -1,52 +1,52 @@
 import { fetch } from "undici";
 import config from "../config";
 import getAuthToken from "../auth/get-auth-token";
+
 import type {
-  OrderErrorResponse,
-  OrderResponseError,
-  OrderResponseSuccess,
-} from "./order";
+  PatchOrderRequestBody,
+  OrderErrorResponseBody,
+  PatchOrder,
+} from "@paypal/paypal-js";
 import type { HttpErrorResponse } from "../types/common";
 
 const {
   paypal: { apiBaseUrl },
 } = config;
 
-type PatchHTTPStatusCodeSuccessResponse = 204;
-
-type PatchOrderRequestHeaders = {
-  "Content-Type": string;
-  Authorization: string;
+// the Authorization header is missing from the headers list
+type PatchOrderRequestHeaders = Partial<PatchOrder["parameters"]["header"]> & {
+  Authorization?: string;
 };
 
-type PatchOrderOptions = {
+type PatchOrderSuccessResponse = {
+  status: "ok";
+  data: null;
+  httpStatusCode: 204;
+};
+
+type PatchOrderErrorResponse = {
+  status: "error";
+  data: OrderErrorResponseBody;
+  httpStatusCode: number;
+};
+
+export type PatchOrderResponse =
+  | PatchOrderSuccessResponse
+  | PatchOrderErrorResponse;
+
+export type PatchOrderOptions = {
   body: PatchOrderRequestBody;
   headers?: PatchOrderRequestHeaders;
   orderID: string;
 };
 
-export type PatchRequest = {
-  op: "add" | "remove" | "replace" | "move" | "copy" | "test";
-  from?: string;
-  path: string;
-  value: number | string | boolean | null | object;
-};
-
-type PatchOrderRequestBody = {
-  patch_request: PatchRequest[];
-};
-interface PatchOrderResponseSuccess extends OrderResponseSuccess {
-  data: null;
-  httpStatusCode: PatchHTTPStatusCodeSuccessResponse;
-}
-
-export type PatchOrderResponse = PatchOrderResponseSuccess | OrderResponseError;
-
 export default async function patchOrder({
   orderID,
   headers,
   body,
-}: PatchOrderOptions): Promise<PatchOrderResponse> {
+}: PatchOrderOptions): Promise<
+  PatchOrderSuccessResponse | PatchOrderErrorResponse
+> {
   if (!orderID) {
     throw new Error("MISSING_ORDER_ID_FOR_PATCH_ORDER");
   }
@@ -66,7 +66,7 @@ export default async function patchOrder({
     response = await fetch(`${apiBaseUrl}/v2/checkout/orders/${orderID}`, {
       method: "PATCH",
       headers: requestHeaders,
-      body: JSON.stringify(body.patch_request),
+      body: JSON.stringify(body),
     });
 
     if (response.status === 204) {
@@ -74,16 +74,16 @@ export default async function patchOrder({
       return {
         status: "ok",
         data: null,
-        httpStatusCode: response.status as PatchHTTPStatusCodeSuccessResponse,
+        httpStatusCode: response.status,
       };
     } else {
       const data = await response.json();
 
       return {
         status: "error",
-        data: data as OrderErrorResponse,
+        data,
         httpStatusCode: response.status,
-      };
+      } as PatchOrderErrorResponse;
     }
   } catch (error) {
     const httpError: HttpErrorResponse =
