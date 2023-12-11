@@ -4,27 +4,35 @@ import getAuthToken from "../auth/get-auth-token";
 
 import type {
   CreateOrderRequestBody,
-  OrderResponseBodyMinimal,
-  OrderResponseBody,
+  OrderSuccessResponseBody,
+  OrderSuccessResponseBodyMinimal,
+  OrderErrorResponseBody,
+  CreateOrder,
 } from "@paypal/paypal-js";
-import type {
-  OrderResponse,
-  OrderErrorResponse,
-  CreateCaptureHTTPStatusCodeSuccessResponse,
-} from "./order";
 import type { HttpErrorResponse } from "../types/common";
 
 const {
   paypal: { apiBaseUrl },
 } = config;
 
-type CreateOrderRequestHeaders = Partial<{
-  "Content-Type": string;
-  Authorization: string;
-  "Accept-Language": string;
-  Prefer: string;
-  "PayPal-Request-Id": string;
-}>;
+// the Authorization header is missing from the headers list
+type CreateOrderRequestHeaders = Partial<
+  CreateOrder["parameters"]["header"]
+> & {
+  Authorization?: string;
+};
+
+type CreateOrderSuccessResponse = {
+  status: "ok";
+  data: OrderSuccessResponseBody | OrderSuccessResponseBodyMinimal;
+  httpStatusCode: 200 | 201;
+};
+
+type CreateOrderErrorResponse = {
+  status: "error";
+  data: OrderErrorResponseBody;
+  httpStatusCode: number;
+};
 
 type CreateOrderOptions = {
   body: CreateOrderRequestBody;
@@ -34,7 +42,9 @@ type CreateOrderOptions = {
 export default async function createOrder({
   body,
   headers = {},
-}: CreateOrderOptions): Promise<OrderResponse> {
+}: CreateOrderOptions): Promise<
+  CreateOrderSuccessResponse | CreateOrderErrorResponse
+> {
   if (!body) {
     throw new Error("MISSING_PAYLOAD_FOR_CREATE_ORDER");
   }
@@ -65,17 +75,16 @@ export default async function createOrder({
         status: "ok",
         data:
           requestHeaders.Prefer === "return=minimal"
-            ? (data as OrderResponseBodyMinimal)
-            : (data as OrderResponseBody),
-        httpStatusCode:
-          response.status as CreateCaptureHTTPStatusCodeSuccessResponse,
-      };
+            ? (data as OrderSuccessResponseBodyMinimal)
+            : (data as OrderSuccessResponseBody),
+        httpStatusCode: response.status,
+      } as CreateOrderSuccessResponse;
     } else {
       return {
         status: "error",
-        data: data as OrderErrorResponse,
+        data,
         httpStatusCode: response.status,
-      };
+      } as CreateOrderErrorResponse;
     }
   } catch (error) {
     const httpError: HttpErrorResponse =

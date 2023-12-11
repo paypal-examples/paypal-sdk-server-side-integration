@@ -10,7 +10,7 @@ To migrate from a client-side to a server-side integration, you will first need 
 1. Setup a server-side integration with the [PayPal REST APIs](https://developer.paypal.com/api/rest/).
 
 1. `createOrder` JavaScript callback must be changed to use your server to create and return an order ID using the PayPal
-REST API's.
+   REST API's.
 
 1. `onApprove` JavaScript callback must be changed to use your server to complete transactions using the PayPal REST APIs.
 
@@ -84,17 +84,17 @@ createOrder: function (data, actions) {
 
 To simplify the integration of your e-commerce website with the PayPal v2 Orders API, you can move the order creation process to your server-side. The following steps are required to create an order on the server-side:
 
-1. Obtain an access token to use for PayPal backend API calls. This [video tutorial](https://www.youtube.com/watch?v=HOkkbGSxmp4&t=113s) can walk you through the steps. 
-2. Pass necessary checkout information from the browser client to your server-side API endpoint. 
-3. Call the PayPal Orders API from your server-side code and return the order ID in your `createOrder()` callback. 
-4. If you were assigned a `BN Code` for your integration, be sure to include this value in the `PayPal-Partner-Attribution-Id` header of the server-side Create Order API call. 
+1. Obtain an access token to use for PayPal backend API calls. This [video tutorial](https://www.youtube.com/watch?v=HOkkbGSxmp4&t=113s) can walk you through the steps.
+2. Pass necessary checkout information from the browser client to your server-side API endpoint.
+3. Call the PayPal Orders API from your server-side code and return the order ID in your `createOrder()` callback.
+4. If you were assigned a `BN Code` for your integration, be sure to include this value in the `PayPal-Partner-Attribution-Id` header of the server-side Create Order API call.
 5. If you are making the server-side Create Order API call on behalf of a connected merchant, you will need to include the [PayPal-Auth-Assertion](https://developer.paypal.com/api/rest/requests/#http-request-headers) header or alternatively, pass the merchant's PayPal Account ID in the [payee](https://developer.paypal.com/docs/api/orders/v2/#orders_create!path=purchase_units/payee/merchant_id&t=request) field of the Create Order `purchase_unit`.
 
 <br/>
 
 **_Helpful diagram highlighting the sequence of events required for a client + server integration for creating and returning an order ID:_**
 
-```mermaid 
+```mermaid
 sequenceDiagram
     actor Buyer
     participant M(HTML) as Partner's HTML Page
@@ -110,7 +110,9 @@ sequenceDiagram
     PP(ORDER)->>M(S): Order Created
     M(S)->>M(HTML): Return Order ID
 ```
+
 **_Sample Create Order API request:_**
+
 ```
 curl -v -X POST https://api-m.sandbox.paypal.com/v2/checkout/orders \
 -H 'Content-Type: application/json' \

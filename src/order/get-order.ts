@@ -2,42 +2,44 @@ import { fetch } from "undici";
 import config from "../config";
 import getAuthToken from "../auth/get-auth-token";
 
-import type { OrderResponseBody } from "@paypal/paypal-js";
 import type {
-  OrderErrorResponse,
-  OrderResponseSuccess,
-  OrderResponseError,
-} from "./order";
+  OrderSuccessResponseBody,
+  OrderErrorResponseBody,
+  GetOrder,
+} from "@paypal/paypal-js";
 import type { HttpErrorResponse } from "../types/common";
 
 const {
   paypal: { apiBaseUrl },
 } = config;
 
-type GetHTTPStatusCodeSuccessResponse = 200;
+// the Authorization header is missing from the headers list
+type GetOrderRequestHeaders = Partial<GetOrder["parameters"]["header"]> & {
+  Authorization?: string;
+};
 
-type GetOrderRequestHeaders = {
-  Authorization: string;
-  "Content-Type": string;
+type GetOrderSuccessResponse = {
+  status: "ok";
+  data: OrderSuccessResponseBody;
+  httpStatusCode: 200;
+};
+
+type GetOrderErrorResponse = {
+  status: "error";
+  data: OrderErrorResponseBody;
+  httpStatusCode: number;
 };
 
 type GetOrderOptions = {
   orderID: string;
   headers?: GetOrderRequestHeaders;
-  query?: { fields: string };
+  query?: GetOrder["parameters"]["query"];
 };
-
-interface GetOrderResponseSuccess extends OrderResponseSuccess {
-  data: OrderResponseBody;
-  httpStatusCode: GetHTTPStatusCodeSuccessResponse;
-}
-
-type GetOrderResponse = GetOrderResponseSuccess | OrderResponseError;
 
 export default async function getOrder({
   orderID,
-  headers,
-}: GetOrderOptions): Promise<GetOrderResponse> {
+  headers = {},
+}: GetOrderOptions): Promise<GetOrderSuccessResponse | GetOrderErrorResponse> {
   if (!orderID) {
     throw new Error("MISSING_ORDER_ID");
   }
@@ -59,20 +61,20 @@ export default async function getOrder({
       headers: requestHeaders,
     });
 
-    const data = (await response.json()) as OrderResponseBody;
+    const data = await response.json();
 
     if (response.ok) {
       return {
         status: "ok",
-        data: data,
-        httpStatusCode: response.status as GetHTTPStatusCodeSuccessResponse,
-      };
+        data: data as OrderSuccessResponseBody,
+        httpStatusCode: response.status,
+      } as GetOrderSuccessResponse;
     } else {
       const data = await response.json();
 
       return {
         status: "error",
-        data: data as OrderErrorResponse,
+        data: data as OrderErrorResponseBody,
         httpStatusCode: response.status,
       };
     }
