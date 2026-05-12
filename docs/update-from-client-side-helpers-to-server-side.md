@@ -240,6 +240,64 @@ const data = await response.json();
 
   Server-side code runs securely on a web server and is typically used to communicate with API and Databases. Common server-side languages used to make websites include Node.js, PHP, ASP.NET, Ruby, and Java.
 
+- What should I do if I use shipping callbacks?
+
+  If you currently use client-side shipping callbacks such as [`onShippingChange`](https://developer.paypal.com/sdk/js/reference/#onshippingchange) (deprecated), [`onShippingAddressChange`](https://developer.paypal.com/sdk/js/reference/#on-shipping-address-change), or [`onShippingOptionsChange`](https://developer.paypal.com/sdk/js/reference/#on-shipping-options-change), you have two options:
+
+  **Option 1 (Recommended): Use server-side shipping callbacks**
+
+  Server-side shipping callbacks let PayPal send shipping updates directly to your server, removing the need for any client-side order patching. This approach is more secure, compatible with Venmo, and works with native mobile applications.
+
+  To set this up, configure `order_update_callback_config` when creating the order on your server:
+
+  ```js
+  // On your server — when creating the order via POST /v2/checkout/orders
+  "payment_source": {
+    "paypal": {
+      "experience_context": {
+        "shipping_preference": "GET_FROM_FILE",
+        "order_update_callback_config": {
+          "callback_events": ["SHIPPING_ADDRESS"],
+          "callback_url": "https://your-server.com/paypal-shipping-callback"
+        }
+      }
+    }
+  }
+  ```
+
+  When the buyer changes their shipping address, PayPal will call your `callback_url` with the updated address. Your server responds with the new shipping options and updated amounts.
+
+  See the full guide: [Server-side shipping callbacks](https://developer.paypal.com/docs/checkout/standard/customize/shipping-module/#server-side-shipping-callbacks)
+
+  **Option 2: Continue using client-side shipping callbacks with server-side order patches**
+
+  You can continue using `onShippingAddressChange` and `onShippingOptionsChange` callbacks, but any order updates (such as recalculating shipping costs) must now be done on your server by calling the [PayPal Orders API PATCH endpoint](https://developer.paypal.com/docs/api/orders/v2/#orders_patch) — the client-side `actions.order.patch()` helper is being deprecated.
+
+  This follows the same pattern used in `createOrder` and `onApprove` throughout this guide — call your server, and your server calls the PayPal API:
+
+  ```js
+  onShippingAddressChange(data, actions) {
+    // Reject unsupported shipping addresses
+    if (data.shippingAddress.countryCode !== 'US') {
+      return actions.reject(data.errors.COUNTRY_ERROR);
+    }
+
+    // Call your server to recalculate shipping and patch the order
+    return fetch("/your-server/api/update-shipping", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orderID: data.orderID,
+        shippingAddress: data.shippingAddress
+      })
+    });
+  }
+  ```
+
+  > **Note:** `onShippingChange` is deprecated. Use `onShippingAddressChange` and `onShippingOptionsChange` instead.
+
 - What should I do if I do not have the ability to run server-side code?
 
-  We recommend using one of PayPal's partners to host your website like Wix, GoDaddy, Shopify, and BigCommerce.
+  If you don't have the ability to run server-side code, you can use PayPal's [Payment Links and Buttons](https://developer.paypal.com/studio/checkout/payment-links-and-buttons) — a no-code solution that lets you create payment links, buy buttons, and shopping cart buttons directly from your PayPal account, with no coding or server required.
+
+  Alternatively, we recommend using one of PayPal's partners to host your website like Wix, GoDaddy, Shopify, and BigCommerce.
