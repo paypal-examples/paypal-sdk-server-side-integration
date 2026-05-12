@@ -210,7 +210,7 @@ To securely store your credentials in your application code, we recommend using 
 
 ```js
 const encodedClientCredentials = Buffer.from(`${client}:${secret}`).toString(
-  "base64"
+  "base64",
 );
 
 const response = await fetch(`${apiBaseUrl}/v1/oauth2/token`, {
